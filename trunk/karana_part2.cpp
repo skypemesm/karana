@@ -12,7 +12,11 @@ using namespace std;
 //Global memory and disk objects
 extern MainMemory mem;
 extern SchemaManager schemaMgr;
-
+extern map<string,node*> ConditionMap;
+extern vector<node*>conditions;
+extern Projection P;
+extern vector<Table*>T;
+extern Product Pr;
 extern vector<string> split (string ,string );
 extern string trim(string&);
 
@@ -37,10 +41,16 @@ string onepass_projection(string relation, Projection* p, bool ifPrint);
 string RemoveDuplicates(string relation);
 bool JoinRelations(Tuple& tA, string relA, Tuple& tB, string relB, node* condition, SchemaManager sm);
 bool Join_onepass(string tableA,string tableB,node* condition,vector<vector<Tuple>*>& _tuplepair);
-void CreateDebugData();
+//void CreateDebugData();
 void ExecuteQuery();
 
-	
+ struct comp
+{
+	bool operator()(const Tuple A, const Tuple B)
+	{
+		return memcmp(&A,&B,sizeof(Tuple))<0;
+	}
+};
 
 /**
 * This function converts the logical tree to a physical plan.
@@ -442,87 +452,327 @@ bool areTuplesEqual(Tuple left,Tuple right)
 		return true;
 
 }
-bool JoinRelations(Tuple& tA, string relA, Tuple& tB, string relB, node* condition, SchemaManager sm)
+ 
+string onepass_selection(string relation, node* condition)
 {
-if(condition==NULL)
-return true;
-if(condition->GetType()==node::INTERSECTION)
-return JoinRelations(tA,relA,tB,relB,condition->GetChild(0),sm) && JoinRelations(tA,relA,tB,relB,condition->GetChild(1),sm);
-else if(condition->GetType()==node::UNION)
-return JoinRelations(tA,relA,tB,relB,condition->GetChild(0),sm) || JoinRelations(tA,relA,tB,relB,condition->GetChild(1),sm);
-else
-{
-if(condition->GetComparison()->ofTable.size()<=1)
-{
-if(relB.compare(*condition->GetComparison()->ofTable.begin())==0)
-return condition->GetComparison()->ComputeExpression(tB,sm,relB);
-else
-return condition->GetComparison()->ComputeExpression(tB,sm,relB);
-}
-else
-return condition->GetComparison()->ComputeJoin(tA,relA,tB,relB,sm);
+	Relation* rel=schemaMgr.getRelation(relation);
+	string newRel=relation.append("_seltemp"); 
+	Relation* newrel=schemaMgr.createRelation(newRel,*schemaMgr.getSchema(relation));
+	int free_mem_blocks=0;
+	int first_free_mem_index=GetFirstFreeMemBlock();
+	if(first_free_mem_index==-1)
+		return "null";
+	int second_free_mem_index=GetFirstFreeMemBlock();
+	if(second_free_mem_index==-1)
+		return "null";
+	//if((rel=schemaMgr.getRelation(relation))==NULL)
+	//	return -1;
+
+	//if(free_mem_blocks>rel->getNumOfBlocks())
+	//	return -2;
+	 
+		for(int i=0;i<rel->getNumOfBlocks();i++)
+		{
+			if(schemaMgr.getRelation(relation)->readBlockToMemory(i,first_free_mem_index)==true)
+			{
+				for(vector<Tuple>::iterator it=mem.getBlock(first_free_mem_index)->getTuples().begin();it!=mem.getBlock(first_free_mem_index)->getTuples().end();it++)
+				{
+					if(GetTupleVal(*it,condition,relation)==true)
+					{
+						if(mem.getBlock(second_free_mem_index)->isFull())
+						{
+							newrel->writeBlockFromMemory(newrel->getNumOfBlocks(),second_free_mem_index);
+							mem.getBlock(second_free_mem_index)->clear();
+						}
+
+						mem.getBlock(second_free_mem_index)->appendTuple(*it);
+
+					}
+
+				}
+				
+			}
+			mem.getBlock(first_free_mem_index)->clear();
+		}
+
+		if(mem.getBlock(second_free_mem_index)->getNumTuples()>0)
+		newrel->writeBlockFromMemory(newrel->getNumOfBlocks(),second_free_mem_index);
+		mem.getBlock(second_free_mem_index)->clear();
+		return newRel;
 
 }
+
+ bool GetTupleVal(Tuple& t, node* condition, string relName)
+ {
+	 if(condition->GetType()==node::SEARCH_CONDITION)
+	 return condition->GetComparison()->ComputeExpression(t,schemaMgr,relName);
+	 else if(condition->GetType()==node::INTERSECTION)
+	 {
+		 return GetTupleVal(t,condition->GetChild(0),relName) && GetTupleVal(t,condition->GetChild(1),relName);
+	 }
+	 else if(condition->GetType()==node::UNION)
+	 {
+		 return GetTupleVal(t,condition->GetChild(0),relName) || GetTupleVal(t,condition->GetChild(1),relName);
+	 }
+ }
+//for standard output from Relation
+string onepass_projection(string relation, Projection* p, bool ifPrint)
+{
+	if(p==NULL)
+		return relation;
+	vector<string> fieldnames;
+	vector<string> fieldtypes;
+	Relation* rel=schemaMgr.getRelation(relation);
+	Schema* relschema=schemaMgr.getSchema(relation);
+	string newRel=relation.append("_proj");
+ 
+		for(int i=0;i<p->GetSize();i++)
+		{
+			fieldnames.push_back(p->GetValue(i)->GetColName());
+			fieldtypes.push_back(relschema->getFieldType(p->GetValue(i)->GetColName()));
+
+		}
+	Schema newrelscm(fieldnames,fieldtypes);
+	Relation* newrel=schemaMgr.createRelation(newRel,newrelscm);
+	int free_mem_blocks=0;
+	int first_free_mem_index=GetFirstFreeMemBlock();
+	if(first_free_mem_index==-1)
+		return "null";
+	int second_free_mem_index=GetFirstFreeMemBlock();
+	if(second_free_mem_index==-1)
+		return "null";
+	
+	for(int i=0;i<rel->getNumOfBlocks();i++)
+		{
+			if(schemaMgr.getRelation(relation)->readBlockToMemory(i,first_free_mem_index)==true)
+			{
+				for(vector<Tuple>::iterator it=mem.getBlock(first_free_mem_index)->getTuples().begin();it!=mem.getBlock(first_free_mem_index)->getTuples().end();it++)
+				{
+					Tuple t(&newrelscm);
+					for(int j=0;j<p->GetSize();j++)
+					{
+						int pos=newrelscm.getFieldPos(p->GetValue(j)->GetColName());
+						if(newrelscm.getFieldType(p->GetValue(j)->GetColName()).compare("INT")==0)
+						t.setField(pos,it->getInt(pos));
+						else
+						t.setField(pos,it->getString(pos));
+					}
+					if(!ifPrint)
+					{
+					if(mem.getBlock(second_free_mem_index)->isFull())
+						{
+							newrel->writeBlockFromMemory(newrel->getNumOfBlocks(),second_free_mem_index);
+							mem.getBlock(second_free_mem_index)->clear();
+						}
+
+						mem.getBlock(second_free_mem_index)->appendTuple(t);
+					}
+					else
+					{
+						t.printTuple();
+					}
+				}
+			}
+			mem.getBlock(first_free_mem_index)->clear();
+		}
+	if(!ifPrint)
+	{
+	if(mem.getBlock(second_free_mem_index)->getNumTuples()>0)
+	newrel->writeBlockFromMemory(newrel->getNumOfBlocks(),second_free_mem_index);
+	mem.getBlock(second_free_mem_index)->clear();
+	return newRel;
+	}
+	else
+		return "null";
+
+}
+
+int GetFirstFreeMemBlock()
+{
+	int index=-1;
+	for(int i=0;i<mem.getMemorySize();i++)
+	{
+		if(mem.getBlock(i)->isFull()==false)
+		{
+			index=i;
+			break;
+		}
+	}
+	return index;
+}
+
+
+string RemoveDuplicates(string relation)
+{
+set<Tuple,comp>duplicates;
+Relation* rel=schemaMgr.getRelation(relation);
+string newRel=relation.append("_dupremoved"); 
+Relation* newrel=schemaMgr.createRelation(newRel,*schemaMgr.getSchema(relation));
+int free_mem_blocks=0;
+int first_free_mem_index=GetFirstFreeMemBlock();
+if(first_free_mem_index==-1)
+return "null";
+int second_free_mem_index=GetFirstFreeMemBlock();
+if(second_free_mem_index==-1)
+return "null";
+for(int i=0;i<rel->getNumOfBlocks();i++)
+		{
+			if(schemaMgr.getRelation(relation)->readBlockToMemory(i,first_free_mem_index)==true)
+			{
+				for(vector<Tuple>::iterator it=mem.getBlock(first_free_mem_index)->getTuples().begin();it!=mem.getBlock(first_free_mem_index)->getTuples().end();it++)
+				{
+					duplicates.insert(*it);
+				}
+			}
+
+			mem.getBlock(first_free_mem_index)->clear();
+
+		}
+vector<Tuple>distinct;
+
+for(set<Tuple,comp>::iterator it=duplicates.begin();it!=duplicates.end();it++)
+{
+	distinct.push_back(*it);
+}
+second_free_mem_index=GetFirstFreeMemBlock();
+int reqsize;
+reqsize=distinct.size()%schemaMgr.getSchema(relation)->getTuplesPerBlock()==0?distinct.size():distinct.size()+1;
+for(int j=0;j<reqsize;j++)
+{
+	if(mem.getBlock(second_free_mem_index+j)->isFull()==true)
+		return "null";
+}
+mem.setTuples(second_free_mem_index,distinct);
+for(int k=0;k<reqsize;k++)
+{
+	newrel->writeBlockFromMemory(newrel->getNumOfBlocks(),second_free_mem_index+k);
+	mem.getBlock(second_free_mem_index+k)->clear();
+}
+return newRel;
+}
+
+bool JoinRelations(Tuple& tA, string relA, Tuple& tB, string relB, node* condition, SchemaManager sm)
+{
+	if(condition==NULL)
+		return true;
+	if(condition->GetType()==node::INTERSECTION)
+		return JoinRelations(tA,relA,tB,relB,condition->GetChild(0),sm) && JoinRelations(tA,relA,tB,relB,condition->GetChild(1),sm);
+	else if(condition->GetType()==node::UNION)
+		return JoinRelations(tA,relA,tB,relB,condition->GetChild(0),sm) || JoinRelations(tA,relA,tB,relB,condition->GetChild(1),sm);
+	else
+	{
+		if(condition->GetComparison()->ofTable.size()<=1)
+		{
+			if(relB.compare(*condition->GetComparison()->ofTable.begin())==0)
+			return condition->GetComparison()->ComputeExpression(tB,sm,relB);
+			else
+			return condition->GetComparison()->ComputeExpression(tB,sm,relB);
+		}
+		else
+			return condition->GetComparison()->ComputeJoin(tA,relA,tB,relB,sm);
+
+	}
 }
 //always print the output.returns false if onepass join is not possible//
 bool Join_onepass(string tableA,string tableB,node* condition,vector<vector<Tuple>*>& _tuplepair)
 {
-vector<string> fieldnames;
-vector<string> fieldtypes;
-Relation* smallrel; 
-Relation* bigrel; 
-if(schemaMgr.getRelation(tableA)->getNumOfBlocks()<schemaMgr.getRelation(tableB)->getNumOfBlocks())
-{smallrel=schemaMgr.getRelation(tableA);
-bigrel=schemaMgr.getRelation(tableB);}
-else
-{bigrel=schemaMgr.getRelation(tableA);
-smallrel=schemaMgr.getRelation(tableB);
+	vector<string> fieldnames;
+	vector<string> fieldtypes;
+	Relation* smallrel; 
+	Relation* bigrel; 
+	if(schemaMgr.getRelation(tableA)->getNumOfBlocks()<schemaMgr.getRelation(tableB)->getNumOfBlocks())
+	{smallrel=schemaMgr.getRelation(tableA);
+	bigrel=schemaMgr.getRelation(tableB);}
+	else
+	{bigrel=schemaMgr.getRelation(tableA);
+	smallrel=schemaMgr.getRelation(tableB);
+	}
+
+	Schema* smallrelschm=schemaMgr.getSchema(smallrel->getRelationName());
+	Schema* bigrelschm=schemaMgr.getSchema(bigrel->getRelationName());
+	
+	if(1+smallrel->getNumOfBlocks()>mem.getMemorySize())
+		return false;
+	
+	int first_free_mem_index=GetFirstFreeMemBlock();
+	if(first_free_mem_index==-1)
+	return false;
+ 	int s_index=first_free_mem_index;
+	for(int i=0;i<smallrel->getNumOfBlocks();i++)
+	{
+		smallrel->readBlockToMemory(i,first_free_mem_index+i);
+	}
+	first_free_mem_index=GetFirstFreeMemBlock();
+	for(int j=0;j<bigrel->getNumOfBlocks();j++)
+	{
+		if(bigrel->readBlockToMemory(j,first_free_mem_index)==true)
+			{
+				for(vector<Tuple>::iterator it=mem.getBlock(first_free_mem_index)->getTuples().begin();it!=mem.getBlock(first_free_mem_index)->getTuples().end();it++)
+				{
+					for(int k=0;k<smallrel->getNumOfBlocks();k++)
+					{
+						for(vector<Tuple>::iterator sit=mem.getBlock(s_index+k)->getTuples().begin();sit!=mem.getBlock(s_index+k)->getTuples().end();sit++)
+						{
+							if(JoinRelations(*sit,smallrel->getRelationName(),*it,bigrel->getRelationName(),condition,schemaMgr))
+							{
+								vector<Tuple>*temp=new vector<Tuple>();
+								temp->push_back(*sit);
+								temp->push_back(*it);
+								_tuplepair.push_back(temp);
+								//smallrelschm->printSchema();bigrelschm->printSchema();printf("\n");
+								//sit->printTuple();it->printTuple();
+							}
+
+						}
+					}
+
+				}
+			}
+		mem.getBlock(first_free_mem_index)->clear();
+
+	}
+
+	for(int i=0;i<smallrel->getNumOfBlocks();i++)
+		mem.getBlock(s_index+i)->clear();
+
+	return true;
 }
 
-Schema* smallrelschm=schemaMgr.getSchema(smallrel->getRelationName());
-Schema* bigrelschm=schemaMgr.getSchema(bigrel->getRelationName());
-if(1+smallrel->getNumOfBlocks()>mem.getMemorySize())
-return false;
-int first_free_mem_index=GetFirstFreeMemBlock();
-if(first_free_mem_index==-1)
-return false;
-  int s_index=first_free_mem_index;
-for(int i=0;i<smallrel->getNumOfBlocks();i++)
+void ExecuteQuery()
 {
-smallrel->readBlockToMemory(i,first_free_mem_index+i);
-}
-first_free_mem_index=GetFirstFreeMemBlock();
-for(int j=0;j<bigrel->getNumOfBlocks();j++)
-{
-if(bigrel->readBlockToMemory(j,first_free_mem_index)==true)
-{
-for(vector<Tuple>::iterator it=mem.getBlock(first_free_mem_index)->getTuples().begin();it!=mem.getBlock(first_free_mem_index)->getTuples().end();it++)
-{
-for(int k=0;k<smallrel->getNumOfBlocks();k++)
-{
-for(vector<Tuple>::iterator sit=mem.getBlock(s_index+k)->getTuples().begin();sit!=mem.getBlock(s_index+k)->getTuples().end();sit++)
-{
-if(JoinRelations(*sit,smallrel->getRelationName(),*it,bigrel->getRelationName(),condition,schemaMgr))
-{
-vector<Tuple>*temp=new vector<Tuple>();
-temp->push_back(*sit);
-temp->push_back(*it);
-_tuplepair.push_back(temp);
-//smallrelschm->printSchema();bigrelschm->printSchema();printf("\n");
-//sit->printTuple();it->printTuple();
-}
+	vector<Table*>&tables=Pr.GetTables();
+	vector<node*>&conditions=Pr.GetConditions();
+	vector<string>tblnames;
+	for(int i=0;i<tables.size();i++)
+	{
+		string tab=tables[i]->GetTblName();
+		for(int j=0;j<tables[i]->getnoConditions();j++)
+		{
+			tab=onepass_selection(tab,tables[i]->GetComparisonPredicate(j));
+		}
+		tab=onepass_projection(tab,tables[i]->GetProjection(),false);
+		tblnames.push_back(tab);
+	}
 
-}
-}
+	if(tables.size()>2)
+	{
+		;//multi table join 
+	}
+	else if(tables.size()>1 && tables.size()<=2)
+	{
+		vector<vector<Tuple>*>tuplepair;
+		if(Join_onepass(tblnames[0],tblnames[1],Pr.Getrootnode(),tuplepair)==false)
+		{
+			//2 pass join required
+		}
+		else
+		{
 
-}
-}
-mem.getBlock(first_free_mem_index)->clear();
-
-}
-
-for(int i=0;i<smallrel->getNumOfBlocks();i++)
-mem.getBlock(s_index+i)->clear();
-
-return true;
+		}
+		//2 table join
+	}
+	else
+	{
+		;//no join
+	}
 }
