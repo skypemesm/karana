@@ -5,6 +5,9 @@
 	#define _StorageManager_h_ 
 #endif
 #include "QueryManager.cpp"
+#include <ctime>
+#include <cstdlib>
+
 using namespace std;
 
 extern int logical2physical();
@@ -25,7 +28,7 @@ Product Pr;
 
 
 //Function prototypes
-int run_query( string , int , int );
+int run_query( string , int , int, int );
 int initial_setup();
 int final_cleanup();
 
@@ -112,7 +115,7 @@ int main (int argc, char ** argv)
 			else
 			{
 				//Loop for each query
-				run_query(query, printlogicaltree, printphysicaltree);
+				run_query(query, printlogicaltree, printphysicaltree, 0);
 			}
 			cout << endl << "------------------------------------------" << endl;
 			}
@@ -129,7 +132,7 @@ int main (int argc, char ** argv)
 /**
 * Run a particular query
 */
-int run_query( string query, int printlogicaltree, int printphysicaltree)
+int run_query( string query, int printlogicaltree, int printphysicaltree, int fromInsert)
 {
 	int status;
 	resetDIOs();
@@ -149,7 +152,7 @@ int run_query( string query, int printlogicaltree, int printphysicaltree)
 		if (printresults() == -1) return -1;
 	}
 
-	cout << endl << "Total number of disk I/Os: " << getDIOs() << endl;
+	cout << endl << "Total number of disk I/Os: " << getDIOs() << endl << endl;
 	return 0;
 }
 
@@ -158,21 +161,39 @@ int run_query( string query, int printlogicaltree, int printphysicaltree)
 */
 int initial_setup()
 {
-	cout << "........................................................" << endl;
-	run_query ("create table course (sid int, homework int, project int, exam int, grade str20)",0,0);
+	cout << endl << "INITIAL SETUP BEGINS........................................" << endl;
+	cout << "........................................................" << endl << endl;
+	run_query ("create table course (sid int, homework int, project int, exam int, grade str20)",0,0,0);
 	
-	run_query ("insert into course(sid, homework,grade) values(40,190,\"bb\")",0,0);
-	run_query ("insert into course(sid, homework,grade) values(40,90,\"aa\")",0,0);
-	run_query ("insert into course(sid, homework,grade) values(40,90,\"aa\")",0,0);
-	run_query ("insert into course(sid, homework) values(10,30)",0,0);
-	run_query ("insert into course(sid, homework,grade) values(10,30,\"ff\")",0,0);
-	run_query ("insert into course(sid, homework,grade) values(20,50,\"t\")",0,0);
-	run_query ("insert into course(sid, homework) values(7,50)",0,0);
-	run_query ("insert into course(sid, homework,grade) values(110,30,\"hh\")",0,0);
-	run_query ("insert into course(sid, homework,grade) values(0,90,\"aa\")",0,0);
-	run_query ("insert into course(sid, homework) values(5,30)",0,0);
-	run_query ("insert into course(sid, homework) values(5,30)",0,0);
-	
+	srand(time(NULL));
+
+	string msg;
+	char buffer[50];
+	for (int i = 0; i<10; i++)
+	{
+		msg = "insert into course(sid, homework,grade, project, exam) values(";
+		itoa(rand()%200, buffer, 10);
+		msg += buffer;
+		msg+= ",";
+		itoa(rand()%100, buffer, 10);
+		msg += buffer;
+		msg+= ",\"stt";
+		itoa(rand()%10, buffer, 10);
+		msg += buffer;
+		msg+= "\",";
+		itoa(rand()%50, buffer, 10);
+		msg += buffer;
+		msg+= ",";
+		itoa(rand()%5, buffer, 10);
+		msg += buffer;
+		msg+= ")";
+		cout << msg << endl;
+		run_query (msg,0,0,0);
+
+	}	
+	Relation* thisrelation = schemaMgr.getRelation("course");
+	thisrelation->printRelation();
+
 	cout << endl << "Initial setup complete.." << endl << endl;
 	return 0;
 }
@@ -183,7 +204,8 @@ int initial_setup()
 int final_cleanup()
 {
 	cout << "........................................................" << endl;
-	run_query("drop table course",0,0);
+	run_query ("delete from course",0,0,0);
+	run_query("drop table course",0,0,0);
 	cout << endl << "Final cleanups complete. press ENTER to exit." << endl;
 
 	string r;

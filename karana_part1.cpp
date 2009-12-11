@@ -34,7 +34,7 @@ extern vector<node*>conditions;
 extern Projection P;
 extern vector<Table*>T;
 extern Product Pr;
-extern int run_query (string , int , int );
+extern int run_query (string , int , int, int );
 
 //function prototypes
 int callLex (string );
@@ -96,6 +96,7 @@ int query2logical(string query)
 		if (regex_match (thisquery.c_str(), res, insert_pattern ))
 		{
 			//THIS IS AN INSERT QUERY
+			/*
 			cout << endl;
 			cout << "INSERT QUERY:" << endl;
 			cout << "Table: " << res[1] << endl;
@@ -107,6 +108,7 @@ int query2logical(string query)
 				cout << i << " :" << res[i] << endl;
 			}
 			
+			*/
 			bool has_attr = false;
 			string attrs = res[3];
 			if (attrs.length() > 0)
@@ -116,7 +118,7 @@ int query2logical(string query)
 			if (res[9] == "select" || res[9] == "SELECT")
 			{
 				// we need to run the select query first
-				run_query(res[5],0,0);
+				run_query(res[5],0,0,1);
 
 				//get the results into memory and call insert_table function
 			}
@@ -182,9 +184,11 @@ int query2logical(string query)
 		else if (regex_match (thisquery.c_str(), res, drop_table_pattern ))
 		{
 			// THIS IS A DROP TABLE QUERY
+			/*
 			cout << endl;
 			cout << "DROP TABLE QUERY:" << endl;
 			cout << "Table Name: " << res[1] << endl;
+			*/
 
 			//check if the table exists or not
 			if (schemaMgr.getRelation(res[1]) == NULL)
@@ -288,19 +292,22 @@ int query2logical(string query)
 		else if (regex_match (thisquery.c_str(), res, select_pattern ))
 		{
 			//THIS IS A SELECT QUERY
+			/*
 			cout << endl;
 			cout << "SELECT QUERY:" << endl;
-			
-			return callLex( thisquery);
+			*/
+			return callLex( thisquery );
 
 		}
 		else if (regex_match (thisquery.c_str(), res, delete_pattern ))
 		{
 			//THIS IS A DELETE QUERY
+			/*
 			cout << endl;
 			cout << "DELETE QUERY:" << endl;
 			cout << "Table Name: " << res[1] << endl;
 			cout << "Condition: " << res[3] << endl;
+			*/
 
 			delete_from_table(res[1], res[3]);
 			
@@ -442,48 +449,17 @@ int create_table(string table_name, map<string,string> column_name_type)
 */
 int delete_from_table(string table_name, string condition)
 {
-	//split the condition accordingly
-	vector<string> conditions_or = split_word(condition, "or");
-	for (int ii =0; ii < conditions_or.size(); ii++)
-	{
-		cout << conditions_or[ii] << endl;
-	}
-
 	Relation* thisrelation = schemaMgr.getRelation(table_name);
-	//Read each tuple from the relation
-	int blocks_read = 0, num_blocks_to_read = 0;
-	int total_blocks = thisrelation->getNumOfBlocks();
-	while (blocks_read < total_blocks)
+	if(condition.empty())
 	{
-		if (total_blocks - blocks_read >= NUM_OF_BLOCKS_IN_MEMORY)
-		{
-			//I can read data into the whole memory
-			num_blocks_to_read = NUM_OF_BLOCKS_IN_MEMORY;
-		}
-		else
-		{
-			//I have to read the leftover ones to memory
-			num_blocks_to_read = total_blocks - blocks_read;
-		}
-		//read data into memory
-		for (int i = 0; i < num_blocks_to_read; i++ )
-			{
-				thisrelation->readBlockToMemory((blocks_read + i),i);
-			}
-
-		//Get all tuples in memory
-		vector<Tuple> tuples;
-		tuples = mem.getTuples(0,num_blocks_to_read);
-		blocks_read += num_blocks_to_read;
-
-		//for every tuple, check if the condition holds
-		for (int i = 0; i < tuples.size(); i++)
-		{
-			tuples[i].printTuple();
-		}
-
-		
+		thisrelation->deleteBlock(0);
 	}
+	else
+	{
+		//call one_pass_selection 
+		//delete the tuples from the resultant relation
+	}
+	//thisrelation->printRelation();
 	return 0;
 }
 
@@ -563,7 +539,7 @@ int insert_into_table(string table_name, map<string,string> values)
 
 	thisrelation->writeBlockFromMemory(lastBlock, 0);
 
-	thisrelation->printRelation();
+	//thisrelation->printRelation();
 
 	return 0;
 }
