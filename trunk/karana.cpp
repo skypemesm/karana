@@ -4,7 +4,7 @@
 	#include "StorageManager.h"
 	#define _StorageManager_h_ 
 #endif
-
+#include "QueryManager.cpp"
 using namespace std;
 
 extern int logical2physical();
@@ -17,6 +17,12 @@ extern string trim(string&);
 //Global memory and disk objects
 MainMemory mem;
 SchemaManager schemaMgr(&mem);
+map<string,node*> ConditionMap;
+vector<node*>conditions;
+Projection P;
+vector<Table*>T;
+Product Pr;
+
 
 //Function prototypes
 int run_query( string , int , int );
