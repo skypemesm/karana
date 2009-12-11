@@ -7,9 +7,24 @@
 #include <exception>
 #include <regex>
 #include <map>
+#include<conio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<sstream>
+#include<vector>
+#include "QueryManager.cpp"
+#include "Markup.h"
 
 using namespace std;
 using namespace std::tr1;
+
+#define MAXWORDS 1000
+extern "C" char* words[MAXWORDS];
+extern "C" int totalwords;
+
+extern "C" int yyparse(void);
+extern "C" int yylex(void);
+extern "C" FILE *yyin;
 
 //Global memory and disk objects
 extern MainMemory mem;
@@ -22,6 +37,9 @@ int callLex (string );
 int create_table(string , map<string,string>);
 int delete_from_table(string, string);
 int insert_into_table(string, map<string,string>);
+void ParseTree();
+node* ParseCondition(string expr);
+void returnCondition(node* root);
 
 vector<string> split_word(string ,string );
 vector<string> split (string ,string );
@@ -268,7 +286,8 @@ int query2logical(string query)
 			cout << endl;
 			cout << "SELECT QUERY:" << endl;
 			
-			return 0;
+			return callLex( thisquery);
+
 		}
 		else if (regex_match (thisquery.c_str(), res, delete_pattern ))
 		{
@@ -302,6 +321,76 @@ int query2logical(string query)
 
 int callLex ( string selectquery )
 {
+char buf[1000];
+int pos=0;
+FILE *fp;
+char* var;
+FILE* myfile;
+
+//printf("\nPlease enter the query:\n\n");
+//gets(buf);
+string str(selectquery);
+
+
+regex open_par("[(]",std::tr1::regex_constants::icase);
+string operbr_replacement = "((";
+str = regex_replace(str, open_par, operbr_replacement);
+
+regex close_par("[)]",std::tr1::regex_constants::icase);
+string closebr_replacement = "))";
+str = regex_replace(str, close_par, closebr_replacement);
+
+regex where_par("WHERE",std::tr1::regex_constants::icase);
+string where_replacement = "WHERE (";
+str = regex_replace(str, where_par, where_replacement);
+
+regex or_par("OR" , std::tr1::regex_constants::icase);
+string or_replacement=") OR (";
+str=regex_replace(str,or_par,or_replacement);
+
+str.append(")");
+
+
+cout << str << endl;
+fp=fopen("temp.txt","w");
+fprintf(fp,"%s",str.c_str());
+fclose(fp);
+
+//
+int firstbr=str.find_first_of("(");
+str.assign(str.substr(firstbr,str.size()-firstbr));
+regex condition_par("[a-z.<>=]+",std::tr1::regex_constants::icase);
+string conditionbr_replacement = "xx";
+str = regex_replace(str, condition_par, conditionbr_replacement);
+
+cout<<"\nnew str is: "<<str;
+
+getch(); //first getch() to check new string
+	myfile = fopen("temp.txt", "r");
+
+	if (!myfile) {
+
+		return -1;
+	}
+
+	yyin = myfile;
+ 
+	do {
+		yyparse();
+	} while (!feof(yyin));
+fclose(myfile);
+
+fp=fopen("temp.xml","w");
+fprintf(fp,"<?xml version=\"1.0\"?>\n");
+printf("total:%d",totalwords);
+getch();
+for(int i=0;i<totalwords;i++)
+{
+	printf("%s",words[i]);
+fprintf(fp,"%s",words[i]);
+}
+fclose(fp);
+ParseTree();
 	return 0;
 }
 
@@ -519,4 +608,360 @@ string trim(string& o) {
   ret.erase(ret.find_last_not_of(chars)+1);
   ret.erase(0, ret.find_first_not_of(chars));
   return ret;
+}
+
+
+void ParseTree()
+{	
+	string ConditionExpr="";
+	int CPcount=0;
+	bool ifDISTINCT=false;
+	Attribute* ifOrderBy=NULL;
+	CMarkup xml;
+	std::wstring str=L"temp.xml";
+	if(!xml.Load(str))
+	{
+	printf("\nIncorrect XML file format!");
+	}
+	xml.ResetPos();
+	xml.FindElem(L"Query");
+	xml.FindChildElem(L"SFW");
+	if(xml.GetChildAttrib(L"DISTINCT")==L"TRUE")
+		ifDISTINCT=true;
+	wstring order;
+	int dpos=0;
+	if((order=xml.GetChildAttrib(L"ORDERBY"))!=L"NULL")
+	{
+		string sorder(order.begin(),order.end());
+		dpos=sorder.find_first_of(L'.')+1;
+		ifOrderBy=new Attribute(sorder.substr(0,dpos-1),sorder.substr(0));
+	}
+	xml.IntoElem();
+	xml.FindChildElem(L"Attributes");
+	xml.IntoElem();
+	while(xml.FindChildElem(L"COLUMN_NAME"))
+	{
+		wstring temp=xml.GetChildData();
+		int pos=temp.find_first_of(L'.')+1;
+		wstring col=temp.substr(pos);
+		string colName(col.begin(),col.end()); 
+		wstring tbl=temp.substr(0,pos-1);
+		string tblName(tbl.begin(),tbl.end());
+		Attribute *one=new Attribute(tblName,colName);
+		P.AddValue(one);
+	}
+ 
+ 	xml.OutOfElem();
+	xml.ResetChildPos();
+	xml.FindChildElem(L"Relations");
+	xml.IntoElem();
+	while(xml.FindChildElem(L"TABLE_NAME"))
+	{
+		wstring temp=xml.GetChildData();
+		string tblName(temp.begin(),temp.end());
+		Table *one=new Table(tblName);
+		T.push_back(one);
+	}
+	xml.OutOfElem();
+	xml.ResetChildPos();
+	if(xml.FindChildElem(L"Search_Condition"))
+	{
+	xml.IntoElem();
+	while(xml.FindChildElem())
+	{
+		wstring ws_srch=xml.GetChildTagName();
+		if(ws_srch==L"ComparisonPredicate")
+		{
+		node *SC=new node();
+		ComparisonPredicate *CP=new ComparisonPredicate();
+		Expression *left=new Expression();
+		CompOp *middle=new CompOp();
+		Expression *right=new Expression();
+		int count=0;
+		
+		xml.IntoElem();
+		while(xml.FindChildElem()) //left expression, comop or right expression
+		{
+			wstring ws_exp=xml.GetChildTagName();
+			if(ws_exp==L"Expression")
+			{
+			
+				xml.IntoElem();
+				int openbrs=0;
+				int closebrs=0;
+				while(xml.FindChildElem())
+				{
+					wstring ws=xml.GetChildTagName();
+					string s(ws.begin(),ws.end());
+					wstring ws_data=xml.GetChildData();
+					string s_data(ws_data.begin(),ws_data.end());
+					
+					if(s=="COLUMN_NAME")
+						{
+						 
+							int pos=s_data.find_first_of('.')+1;
+							Attribute* att=new Attribute(s_data.substr(0,pos-1),s_data.substr(pos));
+							Factor *f=new Factor(Factor::ATTRIBUTE,att);
+							if(count==0)
+							{
+								left->PushFactors(f);
+								left->ExpressionString.append("A");
+							}
+							else
+							{
+								right->PushFactors(f);
+								right->ExpressionString.append("A");
+							}
+						}
+					if(s=="LITERAL")
+						{
+						 
+							litVal* val=new litVal();
+							val->SetVal(s_data.c_str());
+							Factor *f=new Factor(Factor::LITERAL,val);
+								if(count==0)
+								{
+								left->PushFactors(f);
+								left->ExpressionString.append("L");
+								}
+							else
+							{
+								right->PushFactors(f);
+								right->ExpressionString.append("L");
+							}
+						}
+					if(s=="Operator")
+						{
+							ArithmeticOP* aop=new ArithmeticOP();
+							 switch(s_data[0])
+							 {
+							 case '*':aop->SetType(TYPE::MULTIPLY);break;
+							 case '+':aop->SetType(TYPE::PLUS);break;
+							 case '-':aop->SetType(TYPE::MINUS);break;
+							 case '/':aop->SetType(TYPE::DIVIDE);break;
+							 }
+							Factor *f=new Factor(Factor::OPERATOR,aop);
+								if(count==0)
+								{
+								left->PushFactors(f);
+								left->ExpressionString.append("O");
+								}
+							else
+							{
+								right->PushFactors(f);
+								right->ExpressionString.append("O");
+							}
+
+						}
+					if(s=="INTEGER")
+						{
+							intVal* val=new intVal();
+							val->SetVal(atoi(s_data.c_str()));
+							Factor *f=new Factor(Factor::INTEGER,val);
+								if(count==0)
+								{
+								left->PushFactors(f);
+								right->ExpressionString.append("I");
+								}
+							else
+							{
+								right->PushFactors(f);
+								right->ExpressionString.append("I");
+							}
+						}
+					if(s=="OPENBR")
+					{
+						ConditionExpr.append("(");
+						if(count==0)
+							left->ExpressionString.append("(");
+						else
+							right->ExpressionString.append("(");
+						openbrs++;
+					}
+					if(s=="CLOSEBR")
+					{
+						ConditionExpr.append(")");
+						if(count==0)
+							left->ExpressionString.append(")");
+						else
+							right->ExpressionString.append(")");
+						closebrs++;
+					}
+				
+				}
+				xml.OutOfElem();
+			
+					for(int j=0;j<closebrs-openbrs;j++)
+					{
+						if(count==0)
+						{
+						left->ExpressionString="("+left->ExpressionString;
+						}
+						else
+						right->ExpressionString="("+right->ExpressionString;
+					}
+
+					if(count==0)
+						left->GetExpressionString();
+					else
+						right->GetExpressionString();
+				
+ 
+			}
+			
+
+			if(ws_exp==L"COMPOP")
+			{
+				if(xml.GetChildData()==L">")
+					middle->SetType(CompOp::GREATER_THAN);
+				else if(xml.GetChildData()==L"<")
+					middle->SetType(CompOp::LESS_THAN);
+				else if(xml.GetChildData()==L"=")
+					middle->SetType(CompOp::EQUAL);
+				else if(xml.GetChildData()==L">=")
+					middle->SetType(CompOp::EQUAL_OR_GREATER_THAN);
+				else if(xml.GetChildData()==L"<=")
+					middle->SetType(CompOp::EQUAL_OR_LESS_THAN);
+				else
+					;
+				count++;
+			}
+		}
+		xml.OutOfElem();
+		CP->SetComparisonPredicate(left,middle,right);
+		SC->AddComparisonPredicate(CP);
+		SC->SetType(node::SEARCH_CONDITION);
+		std::stringstream os;
+		os<<CPcount;
+		ConditionExpr.append(os.str());
+		ConditionMap.insert(pair<string,node*>(os.str(),SC));
+		CPcount++;
+		}
+
+		else if(ws_srch==L"Logical")
+		{
+			if(xml.GetChildData()==L"AND")
+				ConditionExpr.append("I");
+			else if(xml.GetChildData()==L"OR")
+				ConditionExpr.append("U");
+			else
+				printf("\nIncorrect XML format");
+		}
+		else if(ws_srch==L"OPENBR")
+		{
+			ConditionExpr.append("(");
+
+		}
+		else if(ws_srch==L"CLOSEBR")
+		{
+			ConditionExpr.append(")");
+		}
+		else
+			printf("\nIncorrect XML format !");
+	}
+
+	xml.OutOfElem();
+}
+
+cout<<"\nCondition Expression is:"<<ConditionExpr;
+node* logicalroot=ParseCondition(ConditionExpr);
+returnCondition(logicalroot);
+
+//Improve the query plan now. Push selection down//
+
+for(vector<node*>::iterator it=conditions.begin();it!=conditions.end();)
+{
+	vector<string>&tempTbl=checksubtree(*it);
+	if(tempTbl.size()<=1){
+			for(int j=0;j<T.size();j++)
+			{
+				if(T[j]->GetTblName().compare(*tempTbl.begin())==0)
+					T[j]->AddComparisonPredicate((*it));
+			}
+
+			if(it!=conditions.end())
+			it=conditions.erase(it); 
+		}
+	else if(tempTbl.size()>1 && tempTbl.size()<=2)
+		{
+			Pr.AddJoinCondition(*it);
+
+			if(it!=conditions.end())
+			it=conditions.erase(it); 
+		}
+	else
+		it++;
+	 
+}
+//Adding tables to product and projections to tables//
+for(int j=0;j<T.size();j++)
+{
+	Pr.AddTable(T[j]);
+	Projection* pi=NULL;
+	if(P.GetValue(0)->GetColName().compare("*")!=0)
+	{
+		pi=new Projection();
+	for(int i=0;i<P.GetSize();i++)
+	{
+		if(P.GetValue(i)->GetTblName()==T[j]->GetTblName())
+			pi->AddValue(P.GetValue(i));
+	}
+	for(map<string,node*>::iterator it=ConditionMap.begin();it!=ConditionMap.end();it++)
+	{
+		int i=it->second->GetComparison()->GetleftExpression()->GetSize();
+		for(int k=0;k<i;k++)
+		{
+			if(it->second->GetComparison()->GetleftExpression()->GetFactor(k)->GetType()==Factor::ATTRIBUTE && it->second->GetComparison()->GetleftExpression()->GetFactor(k)->GetAttribute()->GetTblName()==T[j]->GetTblName())
+				pi->AddValue(it->second->GetComparison()->GetleftExpression()->GetFactor(k)->GetAttribute());
+		}
+		i=it->second->GetComparison()->GetRightExpression()->GetSize();
+		for(int k=0;k<i;k++)
+		{
+			if(it->second->GetComparison()->GetRightExpression()->GetFactor(k)->GetType()==Factor::ATTRIBUTE && it->second->GetComparison()->GetRightExpression()->GetFactor(k)->GetAttribute()->GetTblName()==T[j]->GetTblName())
+				pi->AddValue(it->second->GetComparison()->GetRightExpression()->GetFactor(k)->GetAttribute());
+		}
+	}
+	}
+	T[j]->AddProjection(pi);
+	if(ifDISTINCT)
+	T[j]->SetDuplicateElimination();
+
+}
+
+CreateDebugData();
+ExecuteQuery();
+	return;
+			
+}
+
+node* ParseCondition(string expr)
+{
+	deque<node*> _andorstk;
+	deque<node*> _conditionstk;
+	deque<node*>::iterator it=_andorstk.end();
+	node* U;
+	node* I;
+	int currentpos=0;
+	for(int i=0; i<expr.size()-1; i++)
+	{
+		 switch(expr[i])
+		 {
+		 case '(':if(expr[i+1]=='('){currentpos=expr.find_last_of(')');
+			 currentpos=expr.rfind(')',currentpos-1);
+			 _conditionstk.push_back(ParseCondition(expr.substr(i+1,currentpos-i-1))); i=currentpos;}
+		 		  if(_conditionstk.size()>=2 && _andorstk.size()>=1){(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-1));(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-2));
+			      _conditionstk.pop_back();_conditionstk.pop_back();_conditionstk.push_back(_andorstk[0]);_andorstk.pop_back();}
+				 
+				  break;
+		 case 'U':U=new node();U->SetType(node::UNION);_andorstk.push_back(U);break;
+		 case 'I':I=new node();I->SetType(node::INTERSECTION);_andorstk.push_back(I);break;
+		 case ')':break;
+		 default: string str(1,expr[i]);
+			 _conditionstk.push_back(ConditionMap.find(str)->second);if(_conditionstk.size()>=2 && _andorstk.size()>=1){(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-1));(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-2));
+			 _conditionstk.pop_back();_conditionstk.pop_back();_conditionstk.push_back(_andorstk[0]);_andorstk.pop_back();}
+			 break;
+		 }
+
+	}
+	return _conditionstk[0];
 }

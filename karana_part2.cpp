@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include "StorageManager.h"
-#include "QueryManager.h"
+#include "QueryManager.cpp"
 #include <algorithm>
 #include <typeinfo>
 #include <map>
@@ -29,7 +29,16 @@ void ksort(vector <Tuple> &array, vector <int >, vector<string>);
 void quickSort(vector <Tuple> &arr, int , int , vector <int >, vector<string>);
 int tuple_comp(Tuple , Tuple ,  vector <int >, vector<string>);
 bool areTuplesEqual(Tuple , Tuple);
-
+int GetFirstFreeMemBlock();
+bool GetTupleVal(Tuple& t, node* condition, string relation);
+vector<string> checksubtree(node* root);
+string onepass_selection(string Relation, node* condition);
+string onepass_projection(string relation, Projection* p, bool ifPrint);
+string RemoveDuplicates(string relation);
+bool JoinRelations(Tuple& tA, string relA, Tuple& tB, string relB, node* condition, SchemaManager sm);
+bool Join_onepass(string tableA,string tableB,node* condition,vector<vector<Tuple>*>& _tuplepair);
+void CreateDebugData();
+void ExecuteQuery();
 
 	
 
