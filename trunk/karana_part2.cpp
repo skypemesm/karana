@@ -23,34 +23,28 @@ extern string trim(string&);
 //Function prototypes
 int logical2physical();
 int printresults();
-void parse (string );
 void cost_calculation();
 void order_join ();
 void run_operations();
 vector <Tuple> sort_by (string , vector<string> );
-vector<Tuple> twopassDupElim(string );
+vector <Tuple> twopassDupElim(string );
+bool twopassJoin(string ,string ,node* ,vector<vector<Tuple>*>& );
 void ksort(vector <Tuple> &array, vector <int >, vector<string>);
 void quickSort(vector <Tuple> &arr, int , int , vector <int >, vector<string>);
 int tuple_comp(Tuple , Tuple ,  vector <int >, vector<string>);
 bool areTuplesEqual(Tuple , Tuple);
 int GetFirstFreeMemBlock();
-bool GetTupleVal(Tuple& t, node* condition, string relation);
-vector<string> checksubtree(node* root);
-string onepass_selection(string Relation, node* condition);
-string onepass_projection(string relation, Projection* p, bool ifPrint);
-string RemoveDuplicates(string relation);
-bool JoinRelations(Tuple& tA, string relA, Tuple& tB, string relB, node* condition, SchemaManager sm);
-bool Join_onepass(string tableA,string tableB,node* condition,vector<vector<Tuple>*>& _tuplepair);
+bool GetTupleVal(Tuple& , node* , string );
+vector<string> checksubtree(node* );
+string onepass_selection(string , node* );
+string onepass_projection(string , Projection* , bool );
+string RemoveDuplicates(string );
+bool JoinRelations(Tuple& , string , Tuple& , string , node* , SchemaManager );
+bool Join_onepass(string ,string ,node* ,vector<vector<Tuple>*>& );
 //void CreateDebugData();
 void ExecuteQuery();
 
- struct comp
-{
-	bool operator()(const Tuple A, const Tuple B)
-	{
-		return memcmp(&A,&B,sizeof(Tuple))<0;
-	}
-};
+ 
 
 /**
 * This function converts the logical tree to a physical plan.
@@ -59,10 +53,7 @@ int logical2physical()
 {
 	cout << "Entering phase 2: To convert logical plan to physical plan." << endl;
 
-	//Parse the logical file and store it in arrays
-	parse ("logical.xml");
-
-	//calculate the costs
+	//calculate the costs of various subtrees
 	cost_calculation();
 
 	//Find the join order
@@ -72,18 +63,6 @@ int logical2physical()
 	run_operations();
 
 	return 0;
-}
-
-void parse (string filename)
-{
-	//Open the XML file
-
-	//Read it node by node
-
-	//validate it
-
-	//Store in arrays
-
 }
 
 void cost_calculation()
@@ -143,6 +122,7 @@ vector <Tuple> sort_by (string relationname, vector<string> columns)
 	vector<Tuple> results, tuples_in_memory;
 	Relation* thisrelation = schemaMgr.getRelation (relationname);
 	Schema* thisschema = schemaMgr.getSchema (relationname);
+
 	vector<int > columnPositions;
 	vector <string> columnTypes;
 	//find the columnPositions
@@ -151,6 +131,9 @@ vector <Tuple> sort_by (string relationname, vector<string> columns)
 		columnPositions.push_back(thisschema->getFieldPos(columns[i]));
 		columnTypes.push_back(thisschema->getFieldType(columns[i]));
 	}
+
+	Schema tempSchema (columns, columnTypes);	
+	Relation* temprelation = schemaMgr.createRelation("temp1", tempSchema);
 
 	int total_blocks = thisrelation->getNumOfBlocks();
 	int blocks_read = 0, num_blocks_to_read = 0, no_of_buckets = 0;
@@ -186,6 +169,8 @@ vector <Tuple> sort_by (string relationname, vector<string> columns)
 		for (int i = 0; i < num_blocks_to_read; i++ )
 			{
 				thisrelation->writeBlockFromMemory((blocks_read + i),i);
+				temprelation->writeBlockFromMemory((blocks_read + i),i);
+				
 			}
 
 		blocks_read += num_blocks_to_read;
@@ -349,6 +334,84 @@ vector<Tuple> twopassDupElim(string relationname)
 	}
 	return results;
 	
+}
+
+/**
+* Implements a two pass Join algorithm.
+*/
+bool twopassJoin(string tableA,string tableB,node* condition,vector<vector<Tuple>*>& _tuplepair)
+{
+	vector<Tuple> resultsA, resultsB;
+	Relation* relationA = schemaMgr.getRelation (tableA);
+	Schema* schemaA = schemaMgr.getSchema (tableA);
+	Relation* relationB = schemaMgr.getRelation (tableB);
+	Schema* schemaB = schemaMgr.getSchema (tableB);
+	
+	//find the smaller relation of the two
+	if (relationA->getNumOfTuples() > relationA->getNumOfTuples())
+	{string temp;
+	 temp = tableB;
+	 tableB=tableA;
+	 tableA=temp;
+	 Relation* relationA = schemaMgr.getRelation (tableA);
+	 Schema* schemaA = schemaMgr.getSchema (tableA);
+	 Relation* relationB = schemaMgr.getRelation (tableB);
+	 Schema* schemaB = schemaMgr.getSchema (tableB);
+	}
+	vector<string> columnsA = schemaA->getAllColumnNames();
+	vector<string> columnsB = schemaB->getAllColumnNames();
+
+	vector<int > columnPositionsA;
+	vector <string> columnTypesA;
+	//find the columnPositions
+	for (int i = 0; i< columnsA.size(); i++)
+	{
+		columnPositionsA.push_back(schemaA->getFieldPos(columnsA[i]));
+		columnTypesA.push_back(schemaA->getFieldType(columnsA[i]));
+	}
+
+	Schema tempSchemaA (columnsA, columnTypesA);	
+	Relation* temprelation = schemaMgr.createRelation("temp1A", tempSchemaA);
+
+	vector<int > columnPositionsB;
+	vector <string> columnTypesB;
+	//find the columnPositions
+	for (int i = 0; i< columnsB.size(); i++)
+	{
+		columnPositionsB.push_back(schemaB->getFieldPos(columnsB[i]));
+		columnTypesB.push_back(schemaB->getFieldType(columnsB[i]));
+	}
+
+	Schema tempSchemaB (columnsB, columnTypesB);	
+	Relation* temprelationB = schemaMgr.createRelation("temp1B", tempSchemaB);
+
+	//Sort A
+	resultsA = sort_by(tableA, columnsA);
+
+	//Sort B
+	resultsB = sort_by(tableB, columnsB);
+	
+	//Write the blocks to memory
+	mem.setTuples(0,resultsB);
+	for (int i=0;i<resultsB.size();i++)
+	{temprelationB->writeBlockFromMemory(i,i);}
+
+	//Merge the sorted results
+	for (vector <Tuple>::iterator it = resultsA.begin(); it != resultsA.end(); it++)
+	{
+		for (vector <Tuple>::iterator itr = resultsB.begin(); it != resultsB.end(); itr++)
+		{
+			vector<Tuple>*temp=new vector<Tuple>();
+			temp->push_back(*itr);
+			temp->push_back(*it);
+			_tuplepair.push_back(temp);
+		}
+	}
+
+	for(int i=0;i<temprelation->getNumOfBlocks();i++)
+		mem.getBlock(i)->clear();
+
+	return true;
 }
 
 /**
@@ -604,45 +667,49 @@ int GetFirstFreeMemBlock()
 
 string RemoveDuplicates(string relation)
 {
-set<Tuple,comp>duplicates;
+vector <Tuple> results;
 Relation* rel=schemaMgr.getRelation(relation);
 string newRel=relation.append("_dupremoved"); 
 Relation* newrel=schemaMgr.createRelation(newRel,*schemaMgr.getSchema(relation));
 int free_mem_blocks=0;
 int first_free_mem_index=GetFirstFreeMemBlock();
 if(first_free_mem_index==-1)
-return "null";
+	return "null";
 int second_free_mem_index=GetFirstFreeMemBlock();
 if(second_free_mem_index==-1)
-return "null";
+	return "null";
+int no_push = 0;
 for(int i=0;i<rel->getNumOfBlocks();i++)
 		{
 			if(schemaMgr.getRelation(relation)->readBlockToMemory(i,first_free_mem_index)==true)
 			{
-				for(vector<Tuple>::iterator it=mem.getBlock(first_free_mem_index)->getTuples().begin();it!=mem.getBlock(first_free_mem_index)->getTuples().end();it++)
+				for(vector<Tuple>::iterator it=mem.getBlock(first_free_mem_index)->getTuples().begin();
+										it!=mem.getBlock(first_free_mem_index)->getTuples().end();it++)
 				{
-					duplicates.insert(*it);
-				}
+					for (vector<Tuple>::iterator itr = results.begin(); itr!=results.end(); itr++)
+					{
+						if (areTuplesEqual(*it, *itr))
+							{no_push = 1; break;}
+					}
+					if(no_push == 0)
+						results.push_back(*it);
+					no_push = 0;
+				}			
 			}
 
 			mem.getBlock(first_free_mem_index)->clear();
 
 		}
-vector<Tuple>distinct;
 
-for(set<Tuple,comp>::iterator it=duplicates.begin();it!=duplicates.end();it++)
-{
-	distinct.push_back(*it);
-}
 second_free_mem_index=GetFirstFreeMemBlock();
 int reqsize;
-reqsize=distinct.size()%schemaMgr.getSchema(relation)->getTuplesPerBlock()==0?distinct.size():distinct.size()+1;
+reqsize=results.size()%schemaMgr.getSchema(relation)->getTuplesPerBlock()==0?results.size():results.size()+1;
 for(int j=0;j<reqsize;j++)
 {
 	if(mem.getBlock(second_free_mem_index+j)->isFull()==true)
 		return "null";
 }
-mem.setTuples(second_free_mem_index,distinct);
+mem.setTuples(second_free_mem_index,results);
 for(int k=0;k<reqsize;k++)
 {
 	newrel->writeBlockFromMemory(newrel->getNumOfBlocks(),second_free_mem_index+k);
@@ -702,7 +769,7 @@ bool Join_onepass(string tableA,string tableB,node* condition,vector<vector<Tupl
 	{
 		smallrel->readBlockToMemory(i,first_free_mem_index+i);
 	}
-	first_free_mem_index=GetFirstFreeMemBlock();
+	first_free_mem_index=GetFirstFreeMemBlock()+1;
 	for(int j=0;j<bigrel->getNumOfBlocks();j++)
 	{
 		if(bigrel->readBlockToMemory(j,first_free_mem_index)==true)
