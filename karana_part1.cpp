@@ -29,7 +29,11 @@ extern "C" FILE *yyin;
 //Global memory and disk objects
 extern MainMemory mem;
 extern SchemaManager schemaMgr;
-
+extern map<string,node*> ConditionMap;
+extern vector<node*>conditions;
+extern Projection P;
+extern vector<Table*>T;
+extern Product Pr;
 extern int run_query (string , int , int );
 
 //function prototypes
@@ -40,6 +44,7 @@ int insert_into_table(string, map<string,string>);
 void ParseTree();
 node* ParseCondition(string expr);
 void returnCondition(node* root);
+vector<string> checksubtree(node* root);
 
 vector<string> split_word(string ,string );
 vector<string> split (string ,string );
@@ -928,8 +933,8 @@ for(int j=0;j<T.size();j++)
 
 }
 
-CreateDebugData();
-ExecuteQuery();
+//CreateDebugData();
+//ExecuteQuery();
 	return;
 			
 }
@@ -964,4 +969,51 @@ node* ParseCondition(string expr)
 
 	}
 	return _conditionstk[0];
+}
+
+vector<string> checksubtree(node* root)
+{
+	if(root->GetType()!=node::SEARCH_CONDITION)
+	{
+		vector<string>tempi;
+		for(int i=0;i<root->GetNoChildren();i++)
+		{
+			 	
+			vector<string>temp=checksubtree(root->GetChild(i));
+			for(int i=0;i<temp.size();i++)
+			{
+				int j;
+				for(j=0;j<tempi.size();j++)
+				{
+					if(tempi[j]==temp[i])
+						break;
+				}
+				if(j>=tempi.size())
+					tempi.push_back(temp[i]);
+
+			}
+		}
+		return tempi;
+	}
+	else
+	{
+		root->GetComparison()->ifFromOneTable(); 
+		return root->GetComparison()->ofTable;
+	}
+}
+
+void returnCondition(node* root)
+{
+	if(root->GetType()==node::UNION)
+	{
+		conditions.push_back(root);
+		return;
+	}
+	for(int i=0;i<root->GetNoChildren();i++)
+	{
+		returnCondition(root->GetChild(i));				
+	}
+	if(root->GetType()==node::SEARCH_CONDITION)
+		conditions.push_back(root);
+	return;
 }
