@@ -8,10 +8,12 @@ using namespace std;
 
 #define FIELDS_PER_BLOCK 32 // i.e. At least 4 tuples per block
 #define MAX_NUM_OF_FIELDS_IN_RELATION 8
-#define NUM_OF_BLOCKS_IN_MEMORY 100
+#define NUM_OF_BLOCKS_IN_MEMORY 2
 
 void setDelay(int delay);
 void delay();
+void resetDIOs();
+unsigned long int getDIOs();
 
 //A schema records field names and their types
 class Schema{
@@ -32,6 +34,7 @@ class Schema{
   Schema();
   Schema(const vector<string>& field_names, const vector<string>& field_types);
   void printSchema() const;
+  vector <string> Schema::getAllColumnNames() const; 
   string getFieldType(string field_name) const; //return empty string if field not found
   int getFieldPos(string field_name) const; //return -1 if field not found
   int getNumOfFields() const;
@@ -53,8 +56,11 @@ class Tuple{
   friend class Relation;
 
   Tuple(Schema* schema);
+  bool isNull(); //returns true if the tuple is invalid
   bool setField(int pos,int val); // returns false if out of bound
   bool setField(int pos,string val); // returns false if out of bound
+  int getNumOfInts();
+  int getNumOfStrings();
   int getInt(int pos) const; // returns 0 if out of bound
   string getString(int pos) const; // returns empty string if out of bound
   void printTuple() const; // prints the field values
@@ -155,8 +161,8 @@ struct RelationSchemaPair{
 class SchemaManager{
   private:
   MainMemory* mem;
-  map<string,int> relationName_to_pair_position;
-  vector<struct RelationSchemaPair> relation_schema_pairs;
+  map<string,struct RelationSchemaPair> relationName_to_pair_position;
+  //vector<struct RelationSchemaPair> relation_schema_pairs;
 
   public:
   SchemaManager(MainMemory* mem);
