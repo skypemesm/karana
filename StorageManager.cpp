@@ -6,6 +6,7 @@
 using namespace std;
 
 int delay_time=20;
+unsigned long int DIOs=0;
 
 void setDelay(int delay){
   delay_time=delay;
@@ -19,6 +20,18 @@ void delay(){
   }
   //cerr<<"delay_time= "<<delay_time<<endl;
   //cerr<<"start_time= "<<start_time<<" clocks_per_sec= "<<CLOCKS_PER_SEC<<endl;
+}
+
+// Reset the disk I/O counter.
+// Every time you receive a query, reset the counter before you execute the query.
+void resetDIOs() {
+  DIOs=0;
+}
+
+// After the query is done, you could get accumulated number of disk I/Os using this function.
+// One disk I/O means one access to a disk block (i.e. a relation block).
+unsigned long int getDIOs() {
+  return DIOs;
 }
 
 Schema::Schema() {}
@@ -52,9 +65,6 @@ Schema::Schema(const vector<string>& field_names, const vector<string>& field_ty
   tuples_per_block=FIELDS_PER_BLOCK/(num_of_integers+num_of_strings);
 }
 
-void Schema::clear() {
-  fields.clear();
-}
 void Schema::printSchema() const{
   map<string,pair<string,int> >::const_iterator it;
   it=fields.begin();
@@ -64,6 +74,18 @@ void Schema::printSchema() const{
     it++;
   }
 }
+
+vector <string> Schema::getAllColumnNames() const{
+	vector <string> columnNames;
+  map<string,pair<string,int> >::const_iterator it;
+  it=fields.begin();
+  while(it!=fields.end()) {
+	  columnNames.push_back(it->first);
+    it++;
+  }
+  return columnNames;
+}
+
 string Schema::getFieldType(string field_name) const{
   map<string,pair<string,int> >::const_iterator mit;
   if ((mit=fields.find(field_name))==fields.end()) {
@@ -72,6 +94,7 @@ string Schema::getFieldType(string field_name) const{
   }
   return mit->second.first;
 }
+
 int Schema::getFieldPos(string field_name) const {
   map<string,pair<string,int> >::const_iterator mit;
   if ((mit=fields.find(field_name))==fields.end()) {
@@ -98,6 +121,17 @@ Tuple::Tuple(Schema* schema){
   i.resize(schema->getNumOfInt());
   s.resize(schema->getNumOfString());
   this->schema=schema;
+}
+int Tuple::getNumOfInts() {
+	return i.size();
+}
+
+int Tuple::getNumOfStrings() {
+	return s.size();
+}
+
+bool Tuple::isNull() { //returns true if the tuple is invalid
+  return schema==NULL;
 }
 
 bool Tuple::setField(int pos,int val){
@@ -245,10 +279,6 @@ void Relation::setMemory(MainMemory* mem) {
   this->mem=mem;
 }
 
-void Relation::clear() {
-  data.clear();
-}
-
 string Relation::getRelationName() const {
   return relation_name;
 }
@@ -272,6 +302,7 @@ int Relation::getNumOfTuples() const {
 
 bool Relation::readBlockToMemory(int relation_block_index, int memory_block_index) const {
   delay();
+  DIOs++;
   if (memory_block_index>=NUM_OF_BLOCKS_IN_MEMORY) {
     cerr << "readBlockToMemory ERROR: block index out of bound in memory" << endl;
     return false;
@@ -286,6 +317,7 @@ bool Relation::readBlockToMemory(int relation_block_index, int memory_block_inde
 
 bool Relation::writeBlockFromMemory(int relation_block_index, int memory_block_index) {
   delay();
+  DIOs++;
   if (memory_block_index>=NUM_OF_BLOCKS_IN_MEMORY) {
     cerr << "writeBlockFromMemory ERROR: block index out of bound in memory" << endl;
     return false;
@@ -398,6 +430,7 @@ SchemaManager::SchemaManager(MainMemory* mem) {
 }
 
 Relation* SchemaManager::createRelation(string relationName,const Schema& schema){
+/*
   int pos=relation_schema_pairs.size();
   relationName_to_pair_position[relationName]=pos;
 
@@ -410,50 +443,70 @@ Relation* SchemaManager::createRelation(string relationName,const Schema& schema
   relation_schema_pairs[pos].relation.setMemory(mem);
 
   return &(relation_schema_pairs[pos].relation);
+*/
+  relationName_to_pair_position[relationName].schema=schema;
+  relationName_to_pair_position[relationName].relation.setName(relationName);
+  relationName_to_pair_position[relationName].relation.setSchema(&(relationName_to_pair_position[relationName].schema));
+  //cerr << &(relationName_to_pair_position[relationName].schema) << " vs " << relationName_to_pair_position[relationName].relation.schema << endl;
+  relationName_to_pair_position[relationName].relation.setMemory(mem);
+
+  return &(relationName_to_pair_position[relationName].relation);
 }
 
 Schema* SchemaManager::getSchema(string relationName) {
-  map<string,int>::iterator it=relationName_to_pair_position.find(relationName);
+  //map<string,int>::iterator it=relationName_to_pair_position.find(relationName);
+  map<string,struct RelationSchemaPair>::iterator it=relationName_to_pair_position.find(relationName);
   if(it==relationName_to_pair_position.end()) {
-    cerr << "getSchema ERROR: relation " << relationName << " does not exist" << endl;
+    //cerr << "getSchema ERROR: relation " << relationName << " does not exist" << endl;
     return NULL;
   } else {
-    return &relation_schema_pairs[it->second].schema;
+    //return &relation_schema_pairs[it->second].schema;
+    return &(relationName_to_pair_position[relationName].schema);
   }
 }
 
 Relation* SchemaManager::getRelation(string relationName) {
-  map<string,int>::iterator it=relationName_to_pair_position.find(relationName);
+  //map<string,int>::iterator it=relationName_to_pair_position.find(relationName);
+  map<string,struct RelationSchemaPair>::iterator it=relationName_to_pair_position.find(relationName);
   if(it==relationName_to_pair_position.end()){
-    cerr << "getRelation ERROR: relation " << relationName << " does not exist" << endl;
+    //cerr << "getRelation ERROR: relation " << relationName << " does not exist" << endl;
     return NULL;
   } else {
-    return &(relation_schema_pairs[relationName_to_pair_position[relationName]].relation);
+    //return &(relation_schema_pairs[relationName_to_pair_position[relationName]].relation);
+    return &(relationName_to_pair_position[relationName].relation);
   }
 }
 
 bool SchemaManager::deleteRelation(string relationName) {
-  map<string,int>::iterator it;
+  //map<string,int>::iterator it;
+  map<string,struct RelationSchemaPair>::iterator it;
   if ((it=relationName_to_pair_position.find(relationName))==relationName_to_pair_position.end()) {
     cerr << "deleteRelation ERROR: relation " << relationName << " does not exist" << endl;
     return false;
   }
+/*
   int pos=it->second;
   vector<struct RelationSchemaPair>::iterator vit;
   vit=relation_schema_pairs.begin();
   vit=vit+pos;
-  //relation_schema_pairs.erase(vit); //goes wrong
-  vit->relation.clear();
-  vit->schema.clear();
+  relation_schema_pairs.erase(vit);*/
   relationName_to_pair_position.erase(it);
   return true;
 }
 
 void SchemaManager::printRelationSchemaPairs() const {
-  map<string,int>::const_iterator it;
+  map<string,struct RelationSchemaPair>::const_iterator it;
   for (it=relationName_to_pair_position.begin();it!=relationName_to_pair_position.end();it++) {
     cout << it->first << endl;
-    relation_schema_pairs[it->second].schema.printSchema();
+    //cerr << &(it->second.schema) << " vs " << it->second.relation.schema << endl;
+    it->second.schema.printSchema();
   }
+/*
+  vector<struct RelationSchemaPair>::const_iterator vit;
+  for (vit=relation_schema_pairs.begin();vit!=relation_schema_pairs.end();vit++) {
+    cout << vit->relation.relation_name << endl;
+    vit->schema.printSchema();
+  }
+*/
 }
 
