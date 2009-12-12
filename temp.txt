@@ -1,1 +1,0 @@
-SELECT * FROM sd , ds WHERE ( sd.f3 = 31)
