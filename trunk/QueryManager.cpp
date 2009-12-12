@@ -411,13 +411,13 @@ public:
 		if(_expression[0]->GetType()==Factor::LITERAL)
 		{
 			string temp=_expression[0]->GetLiteral()->GetVal();
-			string temp1;
+			/*string temp1;
 			for(int i=0;i<temp.size();i++)
 			{
 				if(i!=0 && i!=temp.size()-1)
 					temp1.push_back(temp[i]);
-			}
-			return temp1;
+			}*/
+			return temp;
 		}
 
 	}

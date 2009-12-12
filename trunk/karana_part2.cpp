@@ -620,7 +620,7 @@ string onepass_projection(string relation, Projection* p, bool ifPrint)
 				vector<Tuple>& temp=mem.getBlock(first_free_mem_index)->getTuples();
 				for(vector<Tuple>::iterator it=temp.begin();it!=temp.end();it++)
 				{
-					Tuple t(&newrelscm);
+					Tuple t(schemaMgr.getSchema(newRel));
 					for(int j=0;j<p->GetSize();j++)
 					{
 						int pos=newrelscm.getFieldPos(p->GetValue(j)->GetColName());
@@ -870,8 +870,8 @@ void ExecuteQuery()
 				}
 				printf("\n");
 			}
-			if(icnt==0)
-				printf("\n 0 rows found");
+		
+				printf("\n %d results found",icnt);
 		}
 		//2 table join
 	}
