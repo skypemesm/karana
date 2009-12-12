@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdio.h>
 #include <string>
 #ifndef _StorageManager_h_
 	#include "StorageManager.h"
@@ -162,14 +163,24 @@ int run_query( string query, int printlogicaltree, int printphysicaltree, int fr
 int initial_setup()
 {
 	cout << endl << "INITIAL SETUP BEGINS........................................" << endl;
-	cout << "........................................................" << endl << endl;
+	cout << "............................................................." << endl << endl;
 	run_query ("create table course (sid int, homework int, project int, exam int, grade str20)",0,0,0);
 	
 	srand(time(NULL));
 
 	string msg;
-	char buffer[50];
-	for (int i = 0; i<10; i++)
+	char buffer[50], rr[6];
+	int r = 0;
+
+	cout << "How many initial random tuples do you want the course table to have? ";
+	gets (rr);
+	
+	r = atoi(rr); 
+	if ( r<0 || r > 100000 )
+		return -1;
+
+	cout << endl << endl;
+	for (int i = 0; i<r; i++)
 	{
 		msg = "insert into course(sid, homework,grade, project, exam) values(";
 		itoa(rand()%200, buffer, 10);
