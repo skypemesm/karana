@@ -75,9 +75,9 @@ void Schema::printSchema() const{
   }
 }
 
-vector <string> Schema::getAllColumnNames() const{
+vector <string> Schema::getAllColumnNames() {
 	vector <string> columnNames;
-  map<string,pair<string,int> >::const_iterator it;
+  map<string,pair<string,int> >::iterator it;
   it=fields.begin();
   while(it!=fields.end()) {
 	  columnNames.push_back(it->first);
@@ -128,6 +128,12 @@ int Tuple::getNumOfInts() {
 
 int Tuple::getNumOfStrings() {
 	return s.size();
+}
+Schema* Tuple::getSchema(){
+	return this->schema;
+}
+void Tuple::setSchema(Schema * thisschema){
+	this->schema=thisschema;
 }
 
 bool Tuple::isNull() { //returns true if the tuple is invalid
@@ -194,6 +200,7 @@ void Tuple::printTuple() const{
   }
   cout<<endl;
 }
+
 
 Block::Block() {}
 

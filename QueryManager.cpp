@@ -53,8 +53,16 @@ public:
 	}
 	void AddValue(Attribute* attr)
 	{
+		int i;
+		for(i=0;i<this->GetSize();i++)
+		{
+			if(this->GetValue(i)->GetColName().compare(attr->GetColName())==0 && this->GetValue(i)->GetTblName().compare(attr->GetTblName())==0)
+				break;
+		}
+		if(i>=this->GetSize())
 		this->_attributes.push_back(attr);
 	}
+
 	int GetSize()
 	{
 		return this->_attributes.size();
@@ -325,12 +333,15 @@ public:
 					else if(_expression[icnt]->GetType()==Factor::ATTRIBUTE)
 					{
 						int pos;
-						if(_expression[icnt]->GetAttribute()->GetTblName().compare(relA)==0)
+						string _seltabA=_expression[icnt]->GetAttribute()->GetTblName().append("_seltemp");				 
+						string _projA=_expression[icnt]->GetAttribute()->GetTblName().append("_proj");
+				 
+						if(relA.substr(0,relA.find_first_of('_')).compare(_expression[icnt]->GetAttribute()->GetTblName())==0)
 						{
 						pos=sm.getSchema(relA)->getFieldPos(_expression[icnt]->GetAttribute()->GetColName());
 						_val.push_back(tA.getInt(pos));
 						}
-						else
+						else if(relB.substr(0,relB.find_first_of('_')).compare(_expression[icnt]->GetAttribute()->GetTblName())==0)
 						{
 						pos=sm.getSchema(relB)->getFieldPos(_expression[icnt]->GetAttribute()->GetColName());
 						_val.push_back(tB.getInt(pos));
@@ -374,11 +385,15 @@ public:
 		for(int i=0;i<_expression.size();i++)
 		{
 			if(_expression[i]->GetType()==Factor::LITERAL)
+			{
 				return true;
+			}
 			else if(_expression[i]->GetType()==Factor::ATTRIBUTE)
 			{
 				if(sm.getSchema(relation)->getFieldType(_expression[i]->GetAttribute()->GetColName()).compare("STR20")==0)
+				{
 					return true;
+				}
 			}
 		}
 		return false;
@@ -389,10 +404,21 @@ public:
 		if(_expression[0]->GetType()==Factor::ATTRIBUTE)
 		{
 		int pos=sm.getSchema(relationName)->getFieldPos(_expression[0]->GetAttribute()->GetColName());
-		return t.getString(pos);
+		{
+			return t.getString(pos);
+		}
 		}
 		if(_expression[0]->GetType()==Factor::LITERAL)
-			return _expression[0]->GetLiteral()->GetVal();
+		{
+			string temp=_expression[0]->GetLiteral()->GetVal();
+			string temp1;
+			for(int i=0;i<temp.size();i++)
+			{
+				if(i!=0 && i!=temp.size()-1)
+					temp1.push_back(temp[i]);
+			}
+			return temp1;
+		}
 
 	}
 		 
@@ -527,6 +553,14 @@ public:
 	}
 	bool ComputeExpression(Tuple& t, SchemaManager sm, string relationName)
 	{
+		if(this->left->checkifliteral(relationName,sm)==true || this->right->checkifliteral(relationName,sm)==true)
+		{
+			if(this->left->GetLiteralVal(this->left->ExpressionString,t,sm,relationName).compare(this->right->GetLiteralVal(this->right->ExpressionString,t,sm,relationName))==0)
+				return true;
+			else
+				return false;
+		}
+
 		bool val=false;
 		switch(middle->GetCompOp())
 		{
@@ -536,9 +570,9 @@ public:
 		val=true;break;
 		case CompOp::EQUAL_OR_LESS_THAN:if(left->GetExpressionVal(left->ExpressionString, t, sm, relationName)<=right->GetExpressionVal(right->ExpressionString, t, sm, relationName))
 		val=true;break;
-		case CompOp::GREATER_THAN:if(left->GetExpressionVal(left->ExpressionString, t, sm, relationName)==right->GetExpressionVal(right->ExpressionString, t, sm, relationName))
+		case CompOp::GREATER_THAN:if(left->GetExpressionVal(left->ExpressionString, t, sm, relationName)>right->GetExpressionVal(right->ExpressionString, t, sm, relationName))
 		val=true;break;
-		case CompOp::LESS_THAN:if(left->GetExpressionVal(left->ExpressionString, t, sm, relationName)==right->GetExpressionVal(right->ExpressionString, t, sm, relationName))
+		case CompOp::LESS_THAN:if(left->GetExpressionVal(left->ExpressionString, t, sm, relationName)<right->GetExpressionVal(right->ExpressionString, t, sm, relationName))
 		val=true;break;
 		default:break;
 		}
@@ -548,6 +582,26 @@ public:
 
 	bool ComputeJoin(Tuple tA, string relA, Tuple tB, string relB, SchemaManager sm)
 	{
+		if(relA.substr(0,relA.find_first_of('_')).compare(this->left->GetFactor(0)->GetAttribute()->GetTblName())==0)
+		{
+			if(this->left->checkifliteral(relA,sm)==true)
+			{
+				if(this->left->GetLiteralVal(this->left->ExpressionString,tA,sm,relA).compare(this->right->GetLiteralVal(this->right->ExpressionString,tB,sm,relB))==0)
+				return true;
+			else
+				return false;
+			}
+		}
+		if(relB.substr(0,relB.find_first_of('_')).compare(this->left->GetFactor(0)->GetAttribute()->GetTblName())==0)
+		{
+			if(this->left->checkifliteral(relB,sm)==true)
+			{
+				if(this->left->GetLiteralVal(this->left->ExpressionString,tB,sm,relB).compare(this->right->GetLiteralVal(this->right->ExpressionString,tA,sm,relA))==0)
+				return true;
+			else
+				return false;
+			}
+		}
 		bool val=false;
 		switch(middle->GetCompOp())
 		{
@@ -690,6 +744,10 @@ public:
 	{
 		return _condition[index];
 	}
+	bool GetDuplicateElimination()
+	{
+		return this->removeDuplicates;
+	}
 };
 
 //Producat class to have table pointers and join conditions//
@@ -723,6 +781,8 @@ public:
 
 	node* Getrootnode()
 	{
+		if(_conditions.size()<=0)
+			return NULL;
 		deque<node*> _queue;
 		for(vector<node*>::iterator it=_conditions.begin();it!=_conditions.end();it++)
 		{
