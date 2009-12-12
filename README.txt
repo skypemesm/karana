@@ -3,7 +3,7 @@
 
 1. About the software:
 ----------------------
-	Karana is a Lightweight SQL interpreter, which accepts simple XML queries and runs them. It works on a simple SQL grammar as described in http://faculty.cs.tamu.edu/chen/courses/608/2009/project/TinySQL.pdf
+	Karana is a Lightweight SQL interpreter, which accepts simple SQL queries and runs them. It works on a simple SQL grammar as described in http://faculty.cs.tamu.edu/chen/courses/608/2009/project/TinySQL.pdf
 It is a command line tool, which accepts and processes the queries and provides appropriate output.
 
 	Karana runs ONLY on Windows platforms.
