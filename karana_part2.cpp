@@ -22,7 +22,7 @@ extern string trim(string&);
 
 //Function prototypes
 int logical2physical();
-int printresults();
+string printresults(int ,int );
 void cost_calculation();
 void order_join ();
 void run_operations();
@@ -42,7 +42,7 @@ string RemoveDuplicates(string );
 bool JoinRelations(Tuple& , string , Tuple& , string , node* , SchemaManager );
 bool Join_onepass(string ,string ,node* ,vector<vector<Tuple>*>& );
 void CreateDebugData();
-void ExecuteQuery();
+string ExecuteQuery(int );
 Relation* CreateSchema( Schema* thisschema, string tablename);
 
  
@@ -84,10 +84,15 @@ void run_operations()
 /**
 * This method prints the results for a query.
 */
-int printresults()
+string printresults(int is_delete=0, int insert = 0)
 {
 
-	ExecuteQuery();
+	string result_table = ExecuteQuery(is_delete);
+
+	if(insert)
+		return result_table;
+	else
+		return NULL;
 	/*
 	//Testing DISTINCT	
 	vector <Tuple> results = twopassDupElim("course");	
@@ -818,7 +823,7 @@ bool Join_onepass(string tableA,string tableB,node* condition,vector<vector<Tupl
 	return true;
 }
 
-void ExecuteQuery()
+string ExecuteQuery(int is_delete = 0)
 {
 	vector<Table*>&tables=Pr.GetTables();
 	vector<node*>&conditions=Pr.GetConditions();
@@ -836,6 +841,7 @@ void ExecuteQuery()
 		if((tab=RemoveDuplicates(tab))=="null")
 		{
 			//call 2 pass duplicate elimination
+			twopassDupElim(tab);
 		}
 		}
 		tblnames.push_back(tab);
@@ -851,6 +857,8 @@ void ExecuteQuery()
 		if(Join_onepass(tblnames[0],tblnames[1],Pr.Getrootnode(),tuplepair)==false)
 		{
 			//2 pass join required
+			tuplepair.clear();
+			twopassJoin(tblnames[0],tblnames[1],Pr.Getrootnode(),tuplepair);
 		}
 		else
 		{
@@ -870,22 +878,137 @@ void ExecuteQuery()
 				}
 				printf("\n");
 			}
-		
-				printf("\n %d results found",icnt);
+			printf("\n %d results found",icnt);
 		}
 		//2 table join
 	}
 	else
 	{
-		printf("\n****************PRINTING RESULT*****************\n");
-		Relation* rel =schemaMgr.getRelation(tblnames[0]);
-		if(rel->getNumOfTuples()<=0)
-			printf("\n 0 rows found");
+		if (is_delete)
+		{
+			//Need to delete the tuples.
+			cout << tblnames[0] << endl;
+			vector <Tuple> temp, tempold, tempnew;
+
+			Relation* delrel = schemaMgr.getRelation(tblnames[0]);
+			Relation* rel = schemaMgr.getRelation(tables[0]->GetTblName());
+
+			if(delrel->getNumOfTuples()<=0)
+				printf("\n 0 rows deleted.");
+			else
+			{
+			int total_blocks = rel->getNumOfBlocks();
+			int blocks_read = 0, num_blocks_to_read = 0;
+			
+
+			// Read all blocks into memory
+			while (blocks_read < total_blocks) 
+			{
+				if (total_blocks - blocks_read >= NUM_OF_BLOCKS_IN_MEMORY)
+					{
+						//I can read data into the whole memory
+						num_blocks_to_read = NUM_OF_BLOCKS_IN_MEMORY;
+					}
+					else
+					{
+						//I have to read the leftover ones to memory
+						num_blocks_to_read = total_blocks - blocks_read;
+					}
+
+				//read data into memory
+				for (int i = 0; i < num_blocks_to_read; i++ )
+					{
+						rel->readBlockToMemory((blocks_read + i),i);
+					}
+				
+				temp = mem.getTuples(0,num_blocks_to_read);
+				for ( int i=0; i< temp.size(); i++)
+					tempold.push_back(temp[i]);
+
+				blocks_read += num_blocks_to_read;
+				num_blocks_to_read = 0;
+			}
+
+			total_blocks = delrel->getNumOfBlocks();
+			blocks_read = 0; num_blocks_to_read = 0;
+
+			// Read all blocks into memory 
+			while (blocks_read < total_blocks) 
+			{
+				if (total_blocks - blocks_read >= NUM_OF_BLOCKS_IN_MEMORY)
+					{
+						//I can read data into the whole memory
+						num_blocks_to_read = NUM_OF_BLOCKS_IN_MEMORY;
+					}
+					else
+					{
+						//I have to read the leftover ones to memory
+						num_blocks_to_read = total_blocks - blocks_read;
+					}
+
+				//read data into memory
+				for (int i = 0; i < num_blocks_to_read; i++ )
+					{
+						delrel->readBlockToMemory((blocks_read + i),i);
+					}
+				
+				temp = mem.getTuples(0,num_blocks_to_read);
+				for ( int i=0; i< temp.size(); i++)
+					tempnew.push_back(temp[i]);
+
+				blocks_read += num_blocks_to_read;
+				num_blocks_to_read = 0;
+			}
+			temp.clear();
+			rel->deleteBlock(0);
+			int no_add = 0;
+			for ( vector<Tuple>::iterator it = tempold.begin();it != tempold.end(); it++)
+			{
+				for (vector <Tuple>::iterator itr = tempnew.begin(); itr != tempnew.end(); itr++)
+				{
+					if( areTuplesEqual(*it,*itr) )
+					{no_add =1;break;}
+				}
+				if(no_add == 0)
+					temp.push_back(*it);
+				no_add = 0;
+			}
+
+			int i = 0, count = 0;
+			while (i<temp.size())
+			{
+				for (int j=0; j<NUM_OF_BLOCKS_IN_MEMORY; j++)
+				{
+					mem.getBlock(0)->appendTuple(temp[i]);
+					if(mem.getBlock(0)->isFull())
+					{
+						rel->writeBlockFromMemory(0,count++);
+						mem.getBlock(0)->clear();
+					}
+				
+				}
+				i=+ NUM_OF_BLOCKS_IN_MEMORY;
+			}
+			}
+
+			cout << tempnew.size() <<" Rows deleted successfully." << endl;
+
+		}
 		else
-		rel->printRelation();
-		 
-		;//no join
+		{
+
+			printf("\n****************PRINTING RESULT*****************\n");
+			Relation* rel =schemaMgr.getRelation(tblnames[0]);
+			if(rel->getNumOfTuples()<=0)
+				printf("\n 0 rows found");
+			else
+			rel->printRelation();
+			 
+			;//no join
+		}
 	}
+
+	return tblnames[0];
 }
 
 Relation* CreateSchema( Schema* thisschema, string tablename)
