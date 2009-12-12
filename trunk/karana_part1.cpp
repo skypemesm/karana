@@ -34,7 +34,7 @@ extern vector<node*>conditions;
 extern Projection P;
 extern vector<Table*>T;
 extern Product Pr;
-extern int run_query (string , int , int, int );
+extern string run_query (string , int , int, int, bool  );
 
 //function prototypes
 int callLex (string );
@@ -118,9 +118,83 @@ int query2logical(string query)
 			if (res[9] == "select" || res[9] == "SELECT")
 			{
 				// we need to run the select query first
-				run_query(res[5],0,0,1);
+				string res_table_name = run_query(res[5],0,0,1,false);
+				Relation* resRel = schemaMgr.getRelation(res_table_name);
+				Schema* resSchema = schemaMgr.getSchema(res_table_name);
 
-				//get the results into memory and call insert_table function
+				if (has_attr)
+				{ // we have attributes specified in the statement
+					vector<string> attributes = split (res[3],",");
+
+					//we have same number of columns and column values
+					if (attributes.size() != resSchema->getNumOfFields())
+					{
+						cout << "Syntax Error: You have given " << attributes.size() << " column names"
+							<< " but " << resSchema->getNumOfFields() << " values as output of the SELECT query. " 
+							<< "Please enter the correct values for the correct columns." << endl;
+					}
+					else
+					{
+						map<string,string> insert_values;
+						pair<map<string, string>::iterator,bool> ret;
+						vector <Tuple> tuples;
+	 					
+						for (int blocks = 0; blocks < resRel->getNumOfBlocks();blocks++)
+						{
+							//Read every block of resultant relation
+							resRel->readBlockToMemory(blocks,0);
+							tuples = mem.getBlock(0)->getTuples();
+							for (int i=0; i < tuples.size(); i++)
+							{
+								//For every tuple
+								
+								for (int j=0; j< attributes.size(); j++)
+								{
+									//This 
+									if(resSchema->getFieldType(attributes[j]).empty())
+									{
+										cout << "Syntax Error: Cannot find column " <<
+											attributes[i] << " in the resultant relation after select."
+											<< endl;
+
+										return -1;
+									}
+									else if (resSchema->getFieldType(attributes[j]) == "INT")
+									{
+									int pos = resSchema->getFieldPos(attributes[j]);
+									ret = insert_values.insert(pair<string,string>(
+										trim(attributes[i]),
+										"" + tuples[i].getInt(pos)));
+									if (ret.second == false)
+									{
+									cout << "Syntax error: You have given the same column name twice." << endl;
+									}
+									}
+									else
+									{
+									int pos = resSchema->getFieldPos(attributes[j]);
+									ret = insert_values.insert(pair<string,string>(
+										trim(attributes[i]),
+										trim(tuples[i].getString(pos))));
+									if (ret.second == false)
+									{
+									cout << "Syntax error: You have given the same column name twice." << endl;
+									}
+									}
+								}
+							}
+						}
+						
+
+						insert_into_table(res[1], insert_values);
+					}
+				}
+				else 
+				{
+					cout << "Your insert query does not specify any column names for the table. Please do that and re-enter." << endl;
+				}
+
+				
 			}
 			else
 			{
@@ -158,7 +232,7 @@ int query2logical(string query)
 				}
 				else 
 				{
-					cout << "Your insert query doesnot specify any column names for the table. Please do that and re-enter." << endl;
+					cout << "Your insert query does not specify any column names for the table. Please do that and re-enter." << endl;
 				}
 			}
 			
@@ -308,6 +382,11 @@ int query2logical(string query)
 			cout << "Table Name: " << res[1] << endl;
 			cout << "Condition: " << res[3] << endl;
 			*/
+			if((split(res[1],",")).size() > 1)
+			{
+				cerr << "Syntax Error: Cannot run a delete operation on more than one table." << endl;
+				return -1;
+			}
 
 			delete_from_table(res[1], res[3]);
 			
@@ -458,7 +537,8 @@ int delete_from_table(string table_name, string condition)
 	}
 	else
 	{
-		//call one_pass_selection 
+		string msg = "SELECT * FROM " + table_name + " WHERE " + condition; 
+		run_query(msg,0,0,0,true);
 		//delete the tuples from the resultant relation
 	}
 	//thisrelation->printRelation();

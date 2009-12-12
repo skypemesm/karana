@@ -13,7 +13,7 @@ using namespace std;
 
 extern int logical2physical();
 extern int query2logical(string );
-extern int printresults();
+extern string printresults(int,int );
 
 extern vector<string> split (string ,string );
 extern string trim(string&);
@@ -29,7 +29,7 @@ Product Pr;
 
 
 //Function prototypes
-int run_query( string , int , int, int );
+string run_query( string , int , int, int, bool );
 int initial_setup();
 int final_cleanup();
 
@@ -116,7 +116,7 @@ int main (int argc, char ** argv)
 			else
 			{
 				//Loop for each query
-				run_query(query, printlogicaltree, printphysicaltree, 0);
+				run_query(query, printlogicaltree, printphysicaltree, 0, false);
 			}
 			cout << endl << "------------------------------------------" << endl;
 			}
@@ -133,12 +133,12 @@ int main (int argc, char ** argv)
 /**
 * Run a particular query
 */
-int run_query( string query, int printlogicaltree, int printphysicaltree, int fromInsert)
+string run_query( string query, int printlogicaltree, int printphysicaltree, int fromInsert, bool is_delete)
 {
 	int status;
 	resetDIOs();
 	status = query2logical(query);
-	if ( status == -1) return -1;
+	if ( status == -1) return "-1";
 	else if (status != 3) //all queries other than select return status 3
 	{
 		// THIS IS A SELECT QUERY.
@@ -146,15 +146,23 @@ int run_query( string query, int printlogicaltree, int printphysicaltree, int fr
 			
 		cout << endl;
 
-		if (logical2physical() == -1) return -1;
+		if (logical2physical() == -1) return "-1";
 			
 		if (printphysicaltree == 1) { cout << "I am printing the physical tree. " << endl;}
-			
-		if (printresults() == -1) return -1;
+		
+		if (fromInsert)
+			return printresults (0,1);
+		else if (is_delete)
+			printresults(1,0);
+		else
+			printresults(0,0);
+
+		return NULL;
+		
 	}
 
 	cout << endl << "Total number of disk I/Os: " << getDIOs() << endl << endl;
-	return 0;
+	return "0";
 }
 
 /**
@@ -164,7 +172,7 @@ int initial_setup()
 {
 	cout << endl << "INITIAL SETUP BEGINS........................................" << endl;
 	cout << "............................................................." << endl << endl;
-	run_query ("create table course (sid int, homework int, project int, exam int, grade str20)",0,0,0);
+	run_query ("create table course (sid int, homework int, project int, exam int, grade str20)",0,0,0,false);
 	
 	srand(time(NULL));
 
@@ -199,7 +207,7 @@ int initial_setup()
 		msg += buffer;
 		msg+= ")";
 		cout << msg << endl;
-		run_query (msg,0,0,0);
+		run_query (msg,0,0,0,false);
 
 	}	
 	Relation* thisrelation = schemaMgr.getRelation("course");
@@ -215,8 +223,8 @@ int initial_setup()
 int final_cleanup()
 {
 	cout << "........................................................" << endl;
-	run_query ("delete from course",0,0,0);
-	run_query("drop table course",0,0,0);
+	run_query ("delete from course",0,0,0,false);
+	run_query("drop table course",0,0,0,false);
 	cout << endl << "Final cleanups complete. press ENTER to exit." << endl;
 
 	string r;
