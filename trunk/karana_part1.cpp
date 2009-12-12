@@ -45,7 +45,7 @@ void ParseTree();
 node* ParseCondition(string expr);
 void returnCondition(node* root);
 vector<string> checksubtree(node* root);
-
+void CreateDebugData();
 vector<string> split_word(string ,string );
 vector<string> split (string ,string );
 string trim(string&);
@@ -333,6 +333,7 @@ int query2logical(string query)
 
 int callLex ( string selectquery )
 {
+		CreateDebugData();
 char buf[1000];
 int pos=0;
 FILE *fp;
@@ -360,6 +361,7 @@ regex or_par("OR" , std::tr1::regex_constants::icase);
 string or_replacement=") OR (";
 str=regex_replace(str,or_par,or_replacement);
 
+if(str.find("WHERE")!=string::npos)
 str.append(")");
 
 
@@ -369,15 +371,15 @@ fprintf(fp,"%s",str.c_str());
 fclose(fp);
 
 //
-int firstbr=str.find_first_of("(");
-str.assign(str.substr(firstbr,str.size()-firstbr));
-regex condition_par("[a-z.<>=]+",std::tr1::regex_constants::icase);
-string conditionbr_replacement = "xx";
-str = regex_replace(str, condition_par, conditionbr_replacement);
+//int firstbr=str.find_first_of("(");
+//str.assign(str.substr(firstbr,str.size()-firstbr));
+//regex condition_par("[a-z.<>=]+",std::tr1::regex_constants::icase);
+//string conditionbr_replacement = "xx";
+//str = regex_replace(str, condition_par, conditionbr_replacement);
+//
+//cout<<"\nnew str is: "<<str;
 
-cout<<"\nnew str is: "<<str;
-
-getch(); //first getch() to check new string
+//getch(); //first getch() to check new string
 	myfile = fopen("temp.txt", "r");
 
 	if (!myfile) {
@@ -395,7 +397,7 @@ fclose(myfile);
 fp=fopen("temp.xml","w");
 fprintf(fp,"<?xml version=\"1.0\"?>\n");
 printf("total:%d",totalwords);
-getch();
+//getch();
 for(int i=0;i<totalwords;i++)
 {
 	printf("%s",words[i]);
@@ -592,7 +594,7 @@ string trim(string& o) {
 }
 
 
-void ParseTree()
+ void ParseTree()
 {	
 	string ConditionExpr="";
 	int CPcount=0;
@@ -640,6 +642,12 @@ void ParseTree()
 	{
 		wstring temp=xml.GetChildData();
 		string tblName(temp.begin(),temp.end());
+		// check if table exists //
+		if(schemaMgr.getRelation(tblName)==NULL)
+		{
+			printf("\nTable does not exist");
+			exit(-1);
+		}
 		Table *one=new Table(tblName);
 		T.push_back(one);
 	}
@@ -742,7 +750,7 @@ void ParseTree()
 								if(count==0)
 								{
 								left->PushFactors(f);
-								right->ExpressionString.append("I");
+								left->ExpressionString.append("I");
 								}
 							else
 							{
@@ -909,14 +917,14 @@ for(int j=0;j<T.size();j++)
 
 }
 
-//CreateDebugData();
-//ExecuteQuery();
 	return;
 			
 }
 
 node* ParseCondition(string expr)
 {
+	if(expr.size()==0)
+		return NULL;
 	deque<node*> _andorstk;
 	deque<node*> _conditionstk;
 	deque<node*>::iterator it=_andorstk.end();
@@ -980,6 +988,8 @@ vector<string> checksubtree(node* root)
 
 void returnCondition(node* root)
 {
+	if(root==NULL)
+		return ;
 	if(root->GetType()==node::UNION)
 	{
 		conditions.push_back(root);
