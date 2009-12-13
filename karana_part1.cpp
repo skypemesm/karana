@@ -107,8 +107,8 @@ int query2logical(string query)
 			{
 				cout << i << " :" << res[i] << endl;
 			}
-			
 			*/
+			
 			bool has_attr = false;
 			string attrs = res[3];
 			if (attrs.length() > 0)
@@ -118,7 +118,7 @@ int query2logical(string query)
 			if (res[9] == "select" || res[9] == "SELECT")
 			{
 				// we need to run the select query first
-				string res_table_name = run_query(res[5],0,0,1,false);
+				string res_table_name = run_query(res[4],0,0,1,false);
 				Relation* resRel = schemaMgr.getRelation(res_table_name);
 				Schema* resSchema = schemaMgr.getSchema(res_table_name);
 
@@ -168,6 +168,7 @@ int query2logical(string query)
 									if (ret.second == false)
 									{
 									cout << "Syntax error: You have given the same column name twice." << endl;
+									return -1;
 									}
 									}
 									else
@@ -179,6 +180,7 @@ int query2logical(string query)
 									if (ret.second == false)
 									{
 									cout << "Syntax error: You have given the same column name twice." << endl;
+									return -1;
 									}
 									}
 								}
@@ -192,6 +194,7 @@ int query2logical(string query)
 				else 
 				{
 					cout << "Your insert query does not specify any column names for the table. Please do that and re-enter." << endl;
+					return -1;
 				}
 
 				
@@ -224,6 +227,7 @@ int query2logical(string query)
 							if (ret.second == false)
 							{
 								cout << "Syntax error: You have given the same column name twice." << endl;
+								return -1;
 							}
 						}
 
@@ -233,7 +237,9 @@ int query2logical(string query)
 				else 
 				{
 					cout << "Your insert query does not specify any column names for the table. Please do that and re-enter." << endl;
+					return -1;
 				}
+
 			}
 			
 			cout << "Values inserted successfully." << endl;
@@ -483,6 +489,7 @@ for(int i=0;i<totalwords;i++)
 fprintf(fp,"%s",words[i]);
 }
 fclose(fp);
+totalwords = 0;
 ParseTree();
 	return 0;
 }
@@ -996,7 +1003,7 @@ for(int j=0;j<T.size();j++)
 	T[j]->SetDuplicateElimination();
 
 }
-
+xml.SetDoc(NULL);
 	return;
 			
 }

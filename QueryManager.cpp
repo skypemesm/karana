@@ -51,6 +51,10 @@ public:
 	{
 
 	}
+	void clear()
+	{
+		_attributes.clear();
+	}
 	void AddValue(Attribute* attr)
 	{
 		int i;
@@ -750,7 +754,7 @@ public:
 	}
 };
 
-//Producat class to have table pointers and join conditions//
+//Product class to have table pointers and join conditions//
 class Product{
 private:
 	vector<node*>_conditions;
@@ -760,6 +764,11 @@ public:
 	Product()
 	{
 
+	}
+	void clear()
+	{
+		_conditions.clear();
+		_tables.clear();
 	}
 	void AddJoinCondition(node* join)
 	{
