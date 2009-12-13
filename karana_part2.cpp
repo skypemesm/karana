@@ -855,14 +855,19 @@ string ExecuteQuery(int is_delete = 0)
 	vector<Table*>&tables=Pr.GetTables();
 	vector<node*>&conditions=Pr.GetConditions();
 	vector<string>tblnames;
+	vector<string>_temptables;
 	for(int i=0;i<tables.size();i++)
 	{
 		string tab=tables[i]->GetTblName();
 		for(int j=0;j<tables[i]->getnoConditions();j++)
 		{
 			tab=onepass_selection(tab,tables[i]->GetComparisonPredicate(j));
+				if(tab!="null" && tab!=tables[i]->GetTblName())
+				_temptables.push_back(tab);
 		}
 		tab=onepass_projection(tab,tables[i]->GetProjection(),false);
+		if(tab!="null" && tab!=tables[i]->GetTblName())
+				_temptables.push_back(tab);
 		if(tables[i]->GetDuplicateElimination())
 		{
 		string tab1;
@@ -876,7 +881,10 @@ string ExecuteQuery(int is_delete = 0)
 			tab=tab1;
 		}
 		}
+
 		tblnames.push_back(tab);
+		if(tab!="null" && tab!=tables[i]->GetTblName())
+				_temptables.push_back(tab);
 	}
 
 	if(tables.size()>2)
@@ -1062,7 +1070,11 @@ string ExecuteQuery(int is_delete = 0)
 			;//no join
 		}
 	}
-
+	//delete temporary tables before returning //
+	for(int i=0;i<_temptables.size();i++)
+	{
+		schemaMgr.deleteRelation(_temptables[i]);
+	}
 	return tblnames[0];
 }
 
