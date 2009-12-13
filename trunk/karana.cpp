@@ -121,6 +121,7 @@ int main (int argc, char ** argv)
 			cout << endl << "------------------------------------------" << endl;
 			}
 		cout << endl << "$$ ";
+		query = "";
 		getline(cin, line);
 		
 		
@@ -156,13 +157,19 @@ string run_query( string query, int printlogicaltree, int printphysicaltree, int
 			printresults(1,0);
 		else
 			printresults(0,0);
-
-		return NULL;
 		
 	}
 
 	cout << endl << "Total number of disk I/Os: " << getDIOs() << endl << endl;
-	return "0";
+
+	//Resetting global variables for next query
+	ConditionMap.clear();
+	conditions.clear();
+	P.clear();
+	T.clear();
+	Pr.clear();
+
+	return "";
 }
 
 /**

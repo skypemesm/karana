@@ -92,7 +92,7 @@ string printresults(int is_delete=0, int insert = 0)
 	if(insert)
 		return result_table;
 	else
-		return NULL;
+		return "";
 	/*
 	//Testing DISTINCT	
 	vector <Tuple> results = twopassDupElim("course");	
@@ -120,7 +120,6 @@ string printresults(int is_delete=0, int insert = 0)
 			results1[i].printTuple();
 	}
 	*/
-	return 0;
 }
 
 /**
@@ -411,6 +410,8 @@ bool twopassJoin(string tableA,string tableB,node* condition,vector<vector<Tuple
 	{
 		for (vector <Tuple>::iterator itr = resultsB.begin(); it != resultsB.end(); itr++)
 		{
+			itr->setSchema(schemaMgr.getSchema(temprelationB->getRelationName()));
+			it->setSchema(schemaMgr.getSchema(temprelation->getRelationName()));
 			vector<Tuple>*temp=new vector<Tuple>();
 			temp->push_back(*itr);
 			temp->push_back(*it);
@@ -684,7 +685,7 @@ string RemoveDuplicates(string relation)
 vector <Tuple> results;
 Relation* rel=schemaMgr.getRelation(relation);
 string newRel=relation + "_dupremoved"; 
-Relation* newrel=CreateSchema(schemaMgr.getSchema(relation),relation);//schemaMgr.createRelation(newRel,*schemaMgr.getSchema(relation));
+Relation* newrel=CreateSchema(schemaMgr.getSchema(relation),newRel);
 Schema* newschema = schemaMgr.getSchema(newRel);
 int free_mem_blocks=0;
 int first_free_mem_index=GetFirstFreeMemBlock();
@@ -801,6 +802,8 @@ bool Join_onepass(string tableA,string tableB,node* condition,vector<vector<Tupl
 							if(JoinRelations(*sit,smallrel->getRelationName(),*it,bigrel->getRelationName(),condition,schemaMgr))
 							{
 								vector<Tuple>*temp=new vector<Tuple>();
+								sit->setSchema(smallrelschm);
+								it->setSchema(bigrelschm);
 								temp->push_back(*sit);
 								temp->push_back(*it);
 								_tuplepair.push_back(temp);
@@ -874,8 +877,8 @@ string ExecuteQuery(int is_delete = 0)
 				{
 					(*tuplepair[i])[j].printTuple();
 					printf("\t");
-					icnt++;
 				}
+				icnt++;
 				printf("\n");
 			}
 			printf("\n %d results found",icnt);
