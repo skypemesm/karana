@@ -767,7 +767,7 @@ YY_RULE_SETUP
 case 11:
 YY_RULE_SETUP
 #line 68 "one.l"
-{ return OR; }
+{ if(!ifOR)ifOR=1;return OR; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
