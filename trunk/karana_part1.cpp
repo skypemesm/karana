@@ -760,6 +760,10 @@ string trim(string& o) {
 		while(xml.FindChildElem()) //left expression, comop or right expression
 		{
 			wstring ws_exp=xml.GetChildTagName();
+			if(ws_exp==L"NOT")
+			{
+				CP->SetNot();
+			}
 			if(ws_exp==L"Expression")
 			{
 			

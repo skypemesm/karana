@@ -460,9 +460,10 @@ char *yytext;
 extern int ifAND;
 extern int ifOR;
 extern int ifWHERE;
+extern int ifNOT;
 
 extern void addword(char*);
-#line 466 "lex.yy.c"
+#line 467 "lex.yy.c"
 
 /* Macros after this point can all be overridden by user definitions in
  * section 1.
@@ -613,9 +614,9 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
 
-#line 41 "one.l"
+#line 42 "one.l"
 
-#line 619 "lex.yy.c"
+#line 620 "lex.yy.c"
 
 	if ( yy_init )
 		{
@@ -700,12 +701,12 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 42 "one.l"
+#line 43 "one.l"
 { yylval.cval=yytext[0];return LETTER; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 43 "one.l"
+#line 44 "one.l"
 { char *temp=(char*)malloc(strlen(yytext)+1);
 			      strcpy(temp,yytext);
 			      yylval.sval=temp;
@@ -713,7 +714,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 47 "one.l"
+#line 48 "one.l"
 { char *temp=(char*)malloc(strlen(yytext)+1);
 			      strcpy(temp,yytext);
 			      yylval.sval=temp;
@@ -721,7 +722,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 51 "one.l"
+#line 52 "one.l"
 { char* col;char* endcol;char* name;char *temp=(char*)malloc(strlen(yytext)+1);int len;char *buf;
 			      strcpy(temp,yytext);
 			      yylval.sval=temp;
@@ -730,7 +731,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 56 "one.l"
+#line 57 "one.l"
 { char *temp=(char*)malloc(strlen(yytext)+1);
 			      strcpy(temp,yytext);
 			      yylval.sval=temp;
@@ -738,7 +739,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 60 "one.l"
+#line 61 "one.l"
 { char *temp=(char*)malloc(strlen(yytext)+1);
 			      strcpy(temp,yytext);
 			      yylval.sval=temp;
@@ -746,42 +747,42 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 64 "one.l"
+#line 65 "one.l"
 { char* col;addword("<Query>\n");addword("<SFW>\n");col="<Attributes>\n"; addword(col);return SELECT;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 65 "one.l"
+#line 66 "one.l"
 { if(!ifAND)ifAND=1;return AND; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 66 "one.l"
+#line 67 "one.l"
 { char* coll;char* col;coll="</Attributes>\n"; addword(coll);col="<Relations>\n"; addword(col);return FROM; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 67 "one.l"
+#line 68 "one.l"
 { char* col; col="</Relations>\n<Search_Condition>\n"; ifWHERE=1; addword(col);return WHERE; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 68 "one.l"
+#line 69 "one.l"
 { if(!ifOR)ifOR=1;return OR; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 69 "one.l"
+#line 70 "one.l"
 { return ORDERBY; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 70 "one.l"
+#line 71 "one.l"
 { return DISTINCT; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 71 "one.l"
+#line 72 "one.l"
 { int len=strlen(yytext);char* temp=(char*)malloc(len+1);
 			      strcpy(temp,yytext);
 			      temp[len]='\0';
@@ -790,60 +791,60 @@ YY_RULE_SETUP
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 76 "one.l"
-{ return NOTe; }
+#line 77 "one.l"
+{ if(!ifNOT)ifNOT=1;return NOTe; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 77 "one.l"
+#line 78 "one.l"
 { return NULLe; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 78 "one.l"
+#line 79 "one.l"
 { return COMMA; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 79 "one.l"
+#line 80 "one.l"
 { char* col="<Operator>";char* endcol="</Operator>\n";char* name="+";int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);return PLUS; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 80 "one.l"
+#line 81 "one.l"
 { char* col="<Operator>";char* endcol="</Operator>\n";char* name="*";int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);return ASTERIX; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 81 "one.l"
+#line 82 "one.l"
 { char* col="<Operator>";char* endcol="</Operator>\n";char* name="-";int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);return MINUS; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 82 "one.l"
+#line 83 "one.l"
 { if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;}if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;}addword("<OPENBR></OPENBR>\n");return OPENBR;};
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 83 "one.l"
+#line 84 "one.l"
 { return CLOSEBR;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 84 "one.l"
+#line 85 "one.l"
 { char* col="<Operator>";char* endcol="</Operator>\n";char* name="/";int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);return DIVIDE; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 85 "one.l"
+#line 86 "one.l"
 ;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 86 "one.l"
+#line 87 "one.l"
 ECHO;
 	YY_BREAK
-#line 847 "lex.yy.c"
+#line 848 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1729,4 +1730,4 @@ int main()
 	return 0;
 	}
 #endif
-#line 86 "one.l"
+#line 87 "one.l"
