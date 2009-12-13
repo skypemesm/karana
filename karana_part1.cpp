@@ -1018,14 +1018,16 @@ node* ParseCondition(string expr)
 	deque<node*>::iterator it=_andorstk.end();
 	node* U;
 	node* I;
+	node* temp;
 	int currentpos=0;
 	for(int i=0; i<expr.size()-1; i++)
 	{
 		 switch(expr[i])
 		 {
-		 case '(':if(expr[i+1]=='('){currentpos=expr.find_last_of(')');
+		 case '(':if(expr[i+1]==')'){break;}if(expr[i+1]=='('){currentpos=expr.find_last_of(')');
 			 currentpos=expr.rfind(')',currentpos-1);
-			 _conditionstk.push_back(ParseCondition(expr.substr(i+1,currentpos-i-1))); i=currentpos;}
+			 if((temp=ParseCondition(expr.substr(i+1,currentpos-i)))!=NULL)
+			 _conditionstk.push_back(temp); i=currentpos;}
 		 		  if(_conditionstk.size()>=2 && _andorstk.size()>=1){(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-1));(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-2));
 			      _conditionstk.pop_back();_conditionstk.pop_back();_conditionstk.push_back(_andorstk[0]);_andorstk.pop_back();}
 				 
@@ -1040,6 +1042,9 @@ node* ParseCondition(string expr)
 		 }
 
 	}
+	if(_conditionstk.size()==0)
+		return NULL;
+	else
 	return _conditionstk[0];
 }
 
