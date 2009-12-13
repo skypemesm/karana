@@ -27,6 +27,7 @@ extern "C" int yylex(void);
 extern "C" FILE *yyin;
 
 //Global memory and disk objects
+Attribute* ifOrderBy;
 extern MainMemory mem;
 extern SchemaManager schemaMgr;
 extern map<string,node*> ConditionMap;
@@ -541,6 +542,7 @@ int delete_from_table(string table_name, string condition)
 	if(condition.empty())
 	{
 		thisrelation->deleteBlock(0);
+		cout << "Deleted all the rows of the table successfully." << endl;
 	}
 	else
 	{
@@ -686,7 +688,6 @@ string trim(string& o) {
 	string ConditionExpr="";
 	int CPcount=0;
 	bool ifDISTINCT=false;
-	Attribute* ifOrderBy=NULL;
 	CMarkup xml;
 	std::wstring str=L"temp.xml";
 	if(!xml.Load(str))
