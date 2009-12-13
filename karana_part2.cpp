@@ -19,6 +19,7 @@ extern vector<Table*>T;
 extern Product Pr;
 extern vector<string> split (string ,string );
 extern string trim(string&);
+extern Attribute* ifOrderBy;
 
 //Function prototypes
 int logical2physical();
@@ -27,7 +28,7 @@ void cost_calculation();
 void order_join ();
 void run_operations();
 vector <Tuple> sort_by (string , vector<string> );
-vector <Tuple> twopassDupElim(string );
+string twopassDupElim(string );
 bool twopassJoin(string ,string ,node* ,vector<vector<Tuple>*>& );
 void ksort(vector <Tuple> &array, vector <int >, vector<string>);
 void quickSort(vector <Tuple> &arr, int , int , vector <int >, vector<string>);
@@ -237,11 +238,14 @@ vector <Tuple> sort_by (string relationname, vector<string> columns)
 /**
 * This function is used to eliminate the duplicates in a relation.
 */
-vector<Tuple> twopassDupElim(string relationname)
+string twopassDupElim(string relationname)
 {
 	vector<Tuple> results, tuples_in_memory;
 	Relation* thisrelation = schemaMgr.getRelation (relationname);
 	Schema* thisschema = schemaMgr.getSchema (relationname);
+	string newRel=relationname + "_dupremoved"; 
+	Relation* newrel=CreateSchema(schemaMgr.getSchema(relationname),newRel);
+	Schema* newschema = schemaMgr.getSchema(newRel);
 	
 	vector<string> columns = thisschema->getAllColumnNames();
 	vector<int > columnPositions;
@@ -327,13 +331,30 @@ vector<Tuple> twopassDupElim(string relationname)
 				{no_push = 1; break;}
 			}
 			if(no_push == 0)
+			{
+				(*it).setSchema(newschema);
 				results.push_back(*it);
+			}
 			no_push = 0;
 		}
 		round++;
 		}			
 
 		ksort (results, columnPositions, columnTypes);
+
+		blocks_read = 0;
+		int count = 0;
+		for (vector <Tuple>::iterator it = results.begin();it !=results.end(); it++)
+		{
+			if (mem.getBlock(0)->isFull())
+			{
+				newrel->writeBlockFromMemory(count++,0);
+				mem.getBlock(0)->clear();
+			}
+			mem.getBlock(0)->appendTuple(*it);
+
+		}
+
 	}
 	else
 	{
@@ -341,7 +362,7 @@ vector<Tuple> twopassDupElim(string relationname)
 		cerr << "Sorry the table is just too large. B(R) > M^2. We cannot do a two pass merge sort."
 			<< "Please use indexes on this table." << endl;
 	}
-	return results;
+	return newRel;
 	
 }
 
@@ -722,7 +743,8 @@ for(int i=0;i<rel->getNumOfBlocks();i++)
 
 second_free_mem_index=GetFirstFreeMemBlock();
 int reqsize;
-reqsize=results.size()%schemaMgr.getSchema(relation)->getTuplesPerBlock()==0?results.size():results.size()+1;
+int tuples_per_block = schemaMgr.getSchema(relation)->getTuplesPerBlock();
+reqsize=results.size()%tuples_per_block ==0 ? results.size()/tuples_per_block:results.size()/tuples_per_block+1;
 if(reqsize > mem.getMemorySize()-1)
 	return "null";
  
@@ -841,10 +863,15 @@ string ExecuteQuery(int is_delete = 0)
 		tab=onepass_projection(tab,tables[i]->GetProjection(),false);
 		if(tables[i]->GetDuplicateElimination())
 		{
-		if((tab=RemoveDuplicates(tab))=="null")
+		string tab1;
+		if((tab1=RemoveDuplicates(tab))=="null")
 		{
 			//call 2 pass duplicate elimination
-			twopassDupElim(tab);
+			tab = twopassDupElim(tab);
+		}
+		else
+		{
+			tab=tab1;
 		}
 		}
 		tblnames.push_back(tab);
