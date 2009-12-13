@@ -269,7 +269,7 @@ public:
 			switch(Expression[i]){
 			case '(':if(Expression[i+1]=='('){currentpos=Expression.find_last_of(')');
 			 currentpos=Expression.rfind(')',currentpos-1);
-			 _val.push_back(GetExpressionVal(Expression.substr(i+1,currentpos-i-1),t,sm,relationName)); i=currentpos;}
+			 _val.push_back(GetExpressionVal(Expression.substr(i+1,currentpos-i),t,sm,relationName)); i=currentpos;}
 			 break;
 			case ')':
 				break;
@@ -311,8 +311,12 @@ public:
 			_operator.pop_back();
 		}
 
-		this->icnt=0;
 		return _val[0];
+	}
+		
+	void ResetCount()
+	{
+		this->icnt=0;
 	}
 
 	int GetJoinExpressionVal(string Expression, Tuple tA, string relA, Tuple tB, string relB, SchemaManager sm)
@@ -325,7 +329,7 @@ public:
 			switch(Expression[i]){
 			case '(':if(Expression[i+1]=='('){currentpos=Expression.find_last_of(')');
 			 currentpos=Expression.rfind(')',currentpos-1);
-			 _val.push_back(GetJoinExpressionVal(Expression.substr(i+1,currentpos-i-1),tA,relA,tB,relB,sm)); i=currentpos;}
+			 _val.push_back(GetJoinExpressionVal(Expression.substr(i+1,currentpos-i),tA,relA,tB,relB,sm)); i=currentpos;}
 			 break;
 			case ')':
 				break;
@@ -379,7 +383,7 @@ public:
 			_operator.pop_back();
 		}
 
-		this->icnt=0;
+//		this->icnt=0;
 		return _val[0];
 
 	}
@@ -557,6 +561,8 @@ public:
 	}
 	bool ComputeExpression(Tuple& t, SchemaManager sm, string relationName)
 	{
+		this->left->ResetCount();
+		this->right->ResetCount();
 		if(this->left->checkifliteral(relationName,sm)==true || this->right->checkifliteral(relationName,sm)==true)
 		{
 			if(this->left->GetLiteralVal(this->left->ExpressionString,t,sm,relationName).compare(this->right->GetLiteralVal(this->right->ExpressionString,t,sm,relationName))==0)
@@ -607,6 +613,8 @@ public:
 			}
 		}
 		bool val=false;
+		this->left->ResetCount();
+		this->right->ResetCount();
 		switch(middle->GetCompOp())
 		{
 		case CompOp::EQUAL:if(left->GetJoinExpressionVal(left->ExpressionString, tA,relA,tB,relB, sm)==right->GetJoinExpressionVal(left->ExpressionString, tA,relA,tB,relB, sm))

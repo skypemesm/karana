@@ -45,6 +45,8 @@ bool Join_onepass(string ,string ,node* ,vector<vector<Tuple>*>& );
 void CreateDebugData();
 string ExecuteQuery(int );
 Relation* CreateSchema( Schema* thisschema, string tablename);
+void Multitable_Join(vector<string>&Tables,vector<vector<Tuple>*>& _tup);
+vector<vector<Tuple>*> JoinMultiTable(vector<vector<Tuple>*>& a, vector<Tuple>& b);
 
  
 
@@ -879,7 +881,30 @@ string ExecuteQuery(int is_delete = 0)
 
 	if(tables.size()>2)
 	{
-		;//multi table join 
+			//multi table join 
+		vector<vector<Tuple>*>tuplepair;
+		Multitable_Join(tblnames,tuplepair);
+		int icnt=0;
+		printf("\n****************PRINTING RESULT*****************\n");
+		for(int k=0;k<(*tuplepair[0]).size();k++)
+		{
+			(*tuplepair[0])[k].getSchema()->printSchema();
+			printf("\t");
+
+		}
+			for(int i=0;i<tuplepair.size();i++)
+			{
+				for(int j=0;j<tuplepair[i]->size();j++)
+				{
+					(*tuplepair[i])[j].printTuple();
+					printf("\t");
+				}
+				icnt++;
+				printf("\n");
+			}
+			printf("\n %d results found",icnt);
+		
+	 
 	}
 	else if(tables.size()>1 && tables.size()<=2)
 	{
@@ -1212,4 +1237,57 @@ void CreateDebugData()
   relationPtr2->printRelation();
   cout << "The relation " << relationPtr2->getRelationName() << " has " << relationPtr2->getNumOfBlocks() << " blocks" << endl << endl;
 
+}
+
+void Multitable_Join(vector<string>&Tables,vector<vector<Tuple>*>& _tup)
+{
+vector<vector<Tuple>*> tuples;
+int first_free_block=GetFirstFreeMemBlock();
+for(int j=2;j<Tables.size();j++)
+{
+	vector<Tuple>* tuple=new vector<Tuple>();
+	for(int i=0;i<schemaMgr.getRelation(Tables[j])->getNumOfBlocks();i++)
+	{
+		if(schemaMgr.getRelation(Tables[j])->readBlockToMemory(i,first_free_block))
+		{
+				vector<Tuple>&temp=mem.getBlock(first_free_block)->getTuples();
+				for(vector<Tuple>::iterator it=temp.begin();it!=temp.end();it++)
+				{		
+					(*it).setSchema(schemaMgr.getSchema(Tables[j]));
+					tuple->push_back(*it);
+				}
+		}
+	}
+	tuples.push_back(tuple);
+}
+
+ 
+	Join_onepass(Tables[0],Tables[1],NULL,_tup);
+	for(int i=0;i<tuples.size();i++)
+	{
+		_tup=JoinMultiTable(_tup,*tuples[i]);
+	}
+
+  
+}
+
+vector<vector<Tuple>*> JoinMultiTable(vector<vector<Tuple>*>& a, vector<Tuple>& b)
+{
+vector<vector<Tuple>*> n;
+for(int i=0;i<b.size();i++)
+ {
+	 for(int j=0;j<a.size();j++)
+	 {
+		 vector<Tuple>* _temp=new vector<Tuple>();
+		 for(int k=0;k<a[j]->size();k++)
+		 {
+			_temp->push_back((*a[j])[k]);
+		 }
+		 _temp->push_back(b[i]);
+		 n.push_back(_temp);
+	 }
+
+ }
+
+ return n;
 }
