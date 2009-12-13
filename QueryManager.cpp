@@ -477,13 +477,23 @@ private:
 	Expression* left;
 	CompOp* middle;
 	Expression* right;
+	bool ifNOT;
 public:
 	vector<string>ofTable; //Name of relations this comparison predicate belongs to/
 	ComparisonPredicate()
 	{
+		this->ifNOT=false;
 		
 	}
+	void SetNot()
+	{
+		this->ifNOT=true;
+	}
 
+	bool GetNOT()
+	{
+		return this->ifNOT;
+	}
 	ComparisonPredicate(Expression* left, CompOp* middle, Expression* right)
 	{
 		this->left=left;
@@ -566,9 +576,13 @@ public:
 		if(this->left->checkifliteral(relationName,sm)==true || this->right->checkifliteral(relationName,sm)==true)
 		{
 			if(this->left->GetLiteralVal(this->left->ExpressionString,t,sm,relationName).compare(this->right->GetLiteralVal(this->right->ExpressionString,t,sm,relationName))==0)
-				return true;
+				
+			{
+				if(!this->GetNOT())
+					return true;else return false;
+			}
 			else
-				return false;
+			{if(!this->GetNOT())return false;else return true;}
 		}
 
 		bool val=false;
@@ -587,7 +601,10 @@ public:
 		default:break;
 		}
 
+		if(!this->GetNOT())
 		return val;
+		else
+		return (!val);
 	}
 
 	bool ComputeJoin(Tuple tA, string relA, Tuple tB, string relB, SchemaManager sm)
@@ -597,9 +614,12 @@ public:
 			if(this->left->checkifliteral(relA,sm)==true)
 			{
 				if(this->left->GetLiteralVal(this->left->ExpressionString,tA,sm,relA).compare(this->right->GetLiteralVal(this->right->ExpressionString,tB,sm,relB))==0)
-				return true;
-			else
-				return false;
+				{
+				if(!this->GetNOT())
+					return true;else return false;}
+				else
+				{if(!this->GetNOT())return false;else return true;}
+
 			}
 		}
 		if(relB.substr(0,relB.find_first_of('_')).compare(this->left->GetFactor(0)->GetAttribute()->GetTblName())==0)
@@ -607,9 +627,11 @@ public:
 			if(this->left->checkifliteral(relB,sm)==true)
 			{
 				if(this->left->GetLiteralVal(this->left->ExpressionString,tB,sm,relB).compare(this->right->GetLiteralVal(this->right->ExpressionString,tA,sm,relA))==0)
-				return true;
-			else
-				return false;
+				{
+				if(!this->GetNOT())
+					return true;else return false;}
+				else
+				{if(!this->GetNOT())return false;else return true;}
 			}
 		}
 		bool val=false;
@@ -630,7 +652,10 @@ public:
 		default:break;
 		}
 
+			if(!this->GetNOT())
 		return val;
+		else
+		return (!val);
 	}
 
 

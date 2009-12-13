@@ -95,12 +95,14 @@ int ifOR;
 int ifWHERE;
 int ifDISTINCT;
 int ifORDERBY; 
+int ifNOT;
 ifprintingCompPred=0;
 ifAND=0;
 ifOR=0;
 ifWHERE=0;
 ifDISTINCT=0;
 ifORDERBY=0;
+ifNOT=0;
 char* orderby="NULL";
 
 
@@ -111,7 +113,7 @@ char* orderby="NULL";
 
 
 /* Line 189 of yacc.c  */
-#line 115 "one.tab.c"
+#line 117 "one.tab.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -173,7 +175,7 @@ typedef union YYSTYPE
 {
 
 /* Line 214 of yacc.c  */
-#line 48 "one.y"
+#line 50 "one.y"
 
 	char* sval;
 	int ival;
@@ -182,7 +184,7 @@ typedef union YYSTYPE
 
 
 /* Line 214 of yacc.c  */
-#line 186 "one.tab.c"
+#line 188 "one.tab.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -194,7 +196,7 @@ typedef union YYSTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 198 "one.tab.c"
+#line 200 "one.tab.c"
 
 #ifdef short
 # undef short
@@ -492,10 +494,10 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    66,    66,    67,    69,    70,    71,    72,    75,    76,
-      90,    92,    95,    96,    99,   100,   103,   103,   120,   121,
-     124,   125,   127,   128,   131,   132,   135,   137,   138,   139,
-     141,   142,   143,   145,   146,   147,   148
+       0,    68,    68,    69,    71,    72,    73,    74,    77,    78,
+      92,    94,    97,    98,   101,   102,   105,   105,   122,   123,
+     126,   127,   129,   130,   133,   134,   137,   139,   140,   141,
+     143,   144,   145,   147,   149,   151,   153
 };
 #endif
 
@@ -1437,182 +1439,192 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 66 "one.y"
+#line 68 "one.y"
     {addword("</Query>\n");modifyXml(orderby,ifDISTINCT);;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 67 "one.y"
+#line 69 "one.y"
     {printf("<Query>\n");;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 69 "one.y"
+#line 71 "one.y"
     {addword("</SFW>\n");;}
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 70 "one.y"
+#line 72 "one.y"
     {addword("</SFW>\n");;}
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 71 "one.y"
+#line 73 "one.y"
     {addword("</SFW>\n");;}
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 72 "one.y"
+#line 74 "one.y"
     {addword("</SFW>\n");;}
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 75 "one.y"
+#line 77 "one.y"
     {if(!ifWHERE)addword("</Relations>\n");;}
     break;
 
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 76 "one.y"
+#line 78 "one.y"
     {if(!ifWHERE)addword("</Relations>\n");ifDISTINCT=1;;}
     break;
 
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 90 "one.y"
+#line 92 "one.y"
     {char* col="</Search_Condition>\n"; addword(col);;}
     break;
 
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 92 "one.y"
+#line 94 "one.y"
     {ifORDERBY=1;orderby=(yyvsp[(2) - (2)].sval);;}
     break;
 
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 95 "one.y"
+#line 97 "one.y"
     {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name="*";int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);;}
     break;
 
   case 14:
 
 /* Line 1455 of yacc.c  */
-#line 99 "one.y"
+#line 101 "one.y"
     {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);;}
     break;
 
   case 15:
 
 /* Line 1455 of yacc.c  */
-#line 100 "one.y"
+#line 102 "one.y"
     {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name=(yyvsp[(3) - (3)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);;}
     break;
 
   case 16:
 
 /* Line 1455 of yacc.c  */
-#line 103 "one.y"
+#line 105 "one.y"
     {char* tbl="<TABLE_NAME>";char* endtbl="</TABLE_NAME>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(tbl)+strlen(endtbl)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,tbl);strcat(buf,name);strcat(buf,endtbl);addword(buf);;}
     break;
 
   case 17:
 
 /* Line 1455 of yacc.c  */
-#line 103 "one.y"
+#line 105 "one.y"
     {char* tbl="<TABLE_NAME>";char* endtbl="</TABLE_NAME>\n";char* name=(yyvsp[(3) - (3)].sval);int len=strlen(tbl)+strlen(endtbl)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,tbl);strcat(buf,name);strcat(buf,endtbl);addword(buf);;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 120 "one.y"
+#line 122 "one.y"
     {;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 121 "one.y"
+#line 123 "one.y"
     {;;}
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 125 "one.y"
+#line 127 "one.y"
+    {;;}
+    break;
+
+  case 23:
+
+/* Line 1455 of yacc.c  */
+#line 130 "one.y"
     {;;}
     break;
 
   case 24:
 
 /* Line 1455 of yacc.c  */
-#line 131 "one.y"
+#line 133 "one.y"
     {char* col="</ComparisonPredicate>\n";ifprintingCompPred--; addword(col);;}
     break;
 
   case 25:
 
 /* Line 1455 of yacc.c  */
-#line 132 "one.y"
+#line 134 "one.y"
     { addword("<CLOSEBR></CLOSEBR>\n");;}
     break;
 
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 135 "one.y"
+#line 137 "one.y"
     {char* col="</Expression>\n";addword(col);;}
     break;
 
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 145 "one.y"
-    {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n<Expression>");ifprintingCompPred++;}addword(buf);;}
+#line 147 "one.y"
+    {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n");if(ifNOT){addword("<NOT></NOT>\n")
+;ifNOT=0;}addword("<Expression>\n");ifprintingCompPred++;}addword(buf);;}
     break;
 
   case 34:
 
 /* Line 1455 of yacc.c  */
-#line 146 "one.y"
-    {char* col="<LITERAL>";char* endcol="</LITERAL>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n<Expression>");ifprintingCompPred++;}addword(buf);;}
+#line 149 "one.y"
+    {char* col="<LITERAL>";char* endcol="</LITERAL>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n");if(ifNOT){addword("<NOT></NOT>\n")
+;ifNOT=0;}addword("<Expression>\n");ifprintingCompPred++;}addword(buf);;}
     break;
 
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 147 "one.y"
-    {char* col="<INTEGER>";char* endcol="</INTEGER>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n<Expression>");ifprintingCompPred++;}addword(buf);;}
+#line 151 "one.y"
+    {char* col="<INTEGER>";char* endcol="</INTEGER>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n");if(ifNOT){addword("<NOT></NOT>\n")
+;ifNOT=0;}addword("<Expression>\n");ifprintingCompPred++;}addword(buf);;}
     break;
 
   case 36:
 
 /* Line 1455 of yacc.c  */
-#line 148 "one.y"
+#line 153 "one.y"
     {addword("<CLOSEBR></CLOSEBR>\n");;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1616 "one.tab.c"
+#line 1628 "one.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1824,7 +1836,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 150 "one.y"
+#line 155 "one.y"
 
 
 void addword(char* s)

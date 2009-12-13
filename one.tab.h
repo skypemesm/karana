@@ -74,7 +74,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 48 "one.y"
+#line 50 "one.y"
 
 	char* sval;
 	int ival;
