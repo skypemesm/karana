@@ -21,11 +21,12 @@ using namespace std::tr1;
 #define MAXWORDS 1000
 extern "C" char* words[MAXWORDS];
 extern "C" int totalwords;
+extern "C" int ifError;
 
 extern "C" int yyparse(void);
 extern "C" int yylex(void);
 extern "C" FILE *yyin;
-
+extern "C" void ResetFlags();
 //Global memory and disk objects
 Attribute* ifOrderBy;
 extern MainMemory mem;
@@ -120,6 +121,12 @@ int query2logical(string query)
 			{
 				// we need to run the select query first
 				string res_table_name = run_query(res[4],0,0,1,false);
+				if (res_table_name.empty())
+				{
+					cout << "Internal Error: Sorry I cannot get the results from the SELECT statement.";
+					return -1;
+				}
+
 				Relation* resRel = schemaMgr.getRelation(res_table_name);
 				Schema* resSchema = schemaMgr.getSchema(res_table_name);
 
@@ -163,8 +170,9 @@ int query2logical(string query)
 									else if (resSchema->getFieldType(attributes[j]) == "INT")
 									{
 									int pos = resSchema->getFieldPos(attributes[j]);
+									string val = "" + tuples[i].getInt(pos);
 									ret = insert_values.insert(pair<string,string>(
-										trim(attributes[i]),
+										trim(attributes[j]),
 										"" + tuples[i].getInt(pos)));
 									if (ret.second == false)
 									{
@@ -176,7 +184,7 @@ int query2logical(string query)
 									{
 									int pos = resSchema->getFieldPos(attributes[j]);
 									ret = insert_values.insert(pair<string,string>(
-										trim(attributes[i]),
+										trim(attributes[j]),
 										trim(tuples[i].getString(pos))));
 									if (ret.second == false)
 									{
@@ -479,7 +487,13 @@ fclose(fp);
 		yyparse();
 	} while (!feof(yyin));
 fclose(myfile);
-
+if(ifError)
+{
+printf("\n Incorrect query syntax!!. Please seperate each word with space and use upper case characters for query keywords. You can also check the TinySQL grammer at http://faculty.cs.tamu.edu/chen/"); 
+getch();
+ifError=0;	return -1;
+}
+ResetFlags();
 fp=fopen("temp.xml","w");
 fprintf(fp,"<?xml version=\"1.0\"?>\n");
 printf("total:%d",totalwords);
@@ -648,7 +662,7 @@ vector<string> split (string splitstring, string delim)
 	pch = strtok_s ((char *)splitstring.c_str(),delim.c_str(), &context);
 	while (pch != NULL)
   	{
-		splits.push_back((string)pch);
+		splits.push_back(trim ((string)pch));
 		pch = strtok_s (NULL, delim.c_str(), &context);
   	}
   return splits;

@@ -80,6 +80,7 @@ char* words[MAXWORDS];
 int totalwords=0;
 void addword(char*);
 void modifyXml(char* orderby, int distinct);
+void ResetFlags();
 
 //#ifdef __cplusplus
 //extern "C" {  
@@ -96,6 +97,7 @@ int ifWHERE;
 int ifDISTINCT;
 int ifORDERBY; 
 int ifNOT;
+int ifError;
 ifprintingCompPred=0;
 ifAND=0;
 ifOR=0;
@@ -103,6 +105,7 @@ ifWHERE=0;
 ifDISTINCT=0;
 ifORDERBY=0;
 ifNOT=0;
+ifError=0;
 char* orderby="NULL";
 
 
@@ -113,7 +116,7 @@ char* orderby="NULL";
 
 
 /* Line 189 of yacc.c  */
-#line 117 "one.tab.c"
+#line 120 "one.tab.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -175,7 +178,7 @@ typedef union YYSTYPE
 {
 
 /* Line 214 of yacc.c  */
-#line 50 "one.y"
+#line 53 "one.y"
 
 	char* sval;
 	int ival;
@@ -184,7 +187,7 @@ typedef union YYSTYPE
 
 
 /* Line 214 of yacc.c  */
-#line 188 "one.tab.c"
+#line 191 "one.tab.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -196,7 +199,7 @@ typedef union YYSTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 200 "one.tab.c"
+#line 203 "one.tab.c"
 
 #ifdef short
 # undef short
@@ -494,10 +497,10 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    68,    68,    69,    71,    72,    73,    74,    77,    78,
-      92,    94,    97,    98,   101,   102,   105,   105,   122,   123,
-     126,   127,   129,   130,   133,   134,   137,   139,   140,   141,
-     143,   144,   145,   147,   149,   151,   153
+       0,    71,    71,    72,    74,    75,    76,    77,    80,    81,
+      95,    97,   100,   101,   104,   105,   108,   108,   125,   126,
+     129,   130,   132,   133,   136,   137,   140,   142,   143,   144,
+     146,   147,   148,   150,   152,   154,   156
 };
 #endif
 
@@ -1439,161 +1442,161 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 68 "one.y"
+#line 71 "one.y"
     {addword("</Query>\n");modifyXml(orderby,ifDISTINCT);;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 69 "one.y"
+#line 72 "one.y"
     {printf("<Query>\n");;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 71 "one.y"
+#line 74 "one.y"
     {addword("</SFW>\n");;}
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 72 "one.y"
+#line 75 "one.y"
     {addword("</SFW>\n");;}
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 73 "one.y"
+#line 76 "one.y"
     {addword("</SFW>\n");;}
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 74 "one.y"
+#line 77 "one.y"
     {addword("</SFW>\n");;}
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 77 "one.y"
+#line 80 "one.y"
     {if(!ifWHERE)addword("</Relations>\n");;}
     break;
 
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 78 "one.y"
+#line 81 "one.y"
     {if(!ifWHERE)addword("</Relations>\n");ifDISTINCT=1;;}
     break;
 
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 92 "one.y"
+#line 95 "one.y"
     {char* col="</Search_Condition>\n"; addword(col);;}
     break;
 
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 94 "one.y"
+#line 97 "one.y"
     {ifORDERBY=1;orderby=(yyvsp[(2) - (2)].sval);;}
     break;
 
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 97 "one.y"
+#line 100 "one.y"
     {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name="*";int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);;}
     break;
 
   case 14:
 
 /* Line 1455 of yacc.c  */
-#line 101 "one.y"
+#line 104 "one.y"
     {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);;}
     break;
 
   case 15:
 
 /* Line 1455 of yacc.c  */
-#line 102 "one.y"
+#line 105 "one.y"
     {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name=(yyvsp[(3) - (3)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);addword(buf);;}
     break;
 
   case 16:
 
 /* Line 1455 of yacc.c  */
-#line 105 "one.y"
+#line 108 "one.y"
     {char* tbl="<TABLE_NAME>";char* endtbl="</TABLE_NAME>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(tbl)+strlen(endtbl)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,tbl);strcat(buf,name);strcat(buf,endtbl);addword(buf);;}
     break;
 
   case 17:
 
 /* Line 1455 of yacc.c  */
-#line 105 "one.y"
+#line 108 "one.y"
     {char* tbl="<TABLE_NAME>";char* endtbl="</TABLE_NAME>\n";char* name=(yyvsp[(3) - (3)].sval);int len=strlen(tbl)+strlen(endtbl)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,tbl);strcat(buf,name);strcat(buf,endtbl);addword(buf);;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 122 "one.y"
+#line 125 "one.y"
     {;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 123 "one.y"
+#line 126 "one.y"
     {;;}
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 127 "one.y"
+#line 130 "one.y"
     {;;}
     break;
 
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 130 "one.y"
+#line 133 "one.y"
     {;;}
     break;
 
   case 24:
 
 /* Line 1455 of yacc.c  */
-#line 133 "one.y"
+#line 136 "one.y"
     {char* col="</ComparisonPredicate>\n";ifprintingCompPred--; addword(col);;}
     break;
 
   case 25:
 
 /* Line 1455 of yacc.c  */
-#line 134 "one.y"
+#line 137 "one.y"
     { addword("<CLOSEBR></CLOSEBR>\n");;}
     break;
 
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 137 "one.y"
+#line 140 "one.y"
     {char* col="</Expression>\n";addword(col);;}
     break;
 
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 147 "one.y"
+#line 150 "one.y"
     {char* col="<COLUMN_NAME>";char* endcol="</COLUMN_NAME>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n");if(ifNOT){addword("<NOT></NOT>\n")
 ;ifNOT=0;}addword("<Expression>\n");ifprintingCompPred++;}addword(buf);;}
     break;
@@ -1601,7 +1604,7 @@ yyreduce:
   case 34:
 
 /* Line 1455 of yacc.c  */
-#line 149 "one.y"
+#line 152 "one.y"
     {char* col="<LITERAL>";char* endcol="</LITERAL>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n");if(ifNOT){addword("<NOT></NOT>\n")
 ;ifNOT=0;}addword("<Expression>\n");ifprintingCompPred++;}addword(buf);;}
     break;
@@ -1609,7 +1612,7 @@ yyreduce:
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 151 "one.y"
+#line 154 "one.y"
     {char* col="<INTEGER>";char* endcol="</INTEGER>\n";char* name=(yyvsp[(1) - (1)].sval);int len=strlen(col)+strlen(endcol)+strlen(name)+1;char *buf=(char*)malloc(len*sizeof(char));strcpy(buf,col);strcat(buf,name);strcat(buf,endcol);if(ifAND){addword("<Logical>AND</Logical>\n");ifAND=0;} if(ifOR){addword("<Logical>OR</Logical>\n");ifOR=0;} if(ifprintingCompPred<=0){addword("<ComparisonPredicate>\n");if(ifNOT){addword("<NOT></NOT>\n")
 ;ifNOT=0;}addword("<Expression>\n");ifprintingCompPred++;}addword(buf);;}
     break;
@@ -1617,14 +1620,14 @@ yyreduce:
   case 36:
 
 /* Line 1455 of yacc.c  */
-#line 153 "one.y"
+#line 156 "one.y"
     {addword("<CLOSEBR></CLOSEBR>\n");;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1628 "one.tab.c"
+#line 1631 "one.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1836,7 +1839,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 155 "one.y"
+#line 158 "one.y"
 
 
 void addword(char* s)
@@ -1870,8 +1873,18 @@ return 1;
 yyerror(s)
 char *s;
 {
-  fprintf(stderr, "%s\n",s);
+  ifError=1;
 }
 
+void ResetFlags()
+{
+ifprintingCompPred=0;
+ifAND=0;
+ifOR=0;
+ifWHERE=0;
+ifDISTINCT=0;
+ifORDERBY=0;
+ifNOT=0;
+}
 
 

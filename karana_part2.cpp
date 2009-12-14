@@ -43,7 +43,7 @@ string RemoveDuplicates(string );
 bool JoinRelations(Tuple& , string , Tuple& , string , node* , SchemaManager );
 bool Join_onepass(string ,string ,node* ,vector<vector<Tuple>*>& );
 void CreateDebugData();
-string ExecuteQuery(int );
+string ExecuteQuery(int , int );
 Relation* CreateSchema( Schema* thisschema, string tablename);
 void Multitable_Join(vector<string>&Tables,vector<vector<Tuple>*>& _tup);
 vector<vector<Tuple>*> JoinMultiTable(vector<vector<Tuple>*>& a, vector<Tuple>& b);
@@ -90,7 +90,7 @@ void run_operations()
 string printresults(int is_delete=0, int insert = 0)
 {
 
-	string result_table = ExecuteQuery(is_delete);
+	string result_table = ExecuteQuery(is_delete, insert);
 
 	if(insert)
 		return result_table;
@@ -604,6 +604,7 @@ string onepass_selection(string relation, node* condition)
 
  bool GetTupleVal(Tuple& t, node* condition, string relName)
  {
+	 cout << "." ;
 	 if(condition->GetType()==node::SEARCH_CONDITION)
 	 return condition->GetComparison()->ComputeExpression(t,schemaMgr,relName);
 	 else if(condition->GetType()==node::INTERSECTION)
@@ -850,12 +851,12 @@ bool Join_onepass(string tableA,string tableB,node* condition,vector<vector<Tupl
 	return true;
 }
 
-string ExecuteQuery(int is_delete = 0)
+string ExecuteQuery(int is_delete = 0, int is_insert = 0)
 {
 	vector<Table*>&tables=Pr.GetTables();
 	vector<node*>&conditions=Pr.GetConditions();
 	vector<string>tblnames;
-	vector<string>_temptables;
+	map<string,bool>_temptables;
 	for(int i=0;i<tables.size();i++)
 	{
 		string tab=tables[i]->GetTblName();
@@ -863,11 +864,15 @@ string ExecuteQuery(int is_delete = 0)
 		{
 			tab=onepass_selection(tab,tables[i]->GetComparisonPredicate(j));
 			if(tab!="null" && tab!=tables[i]->GetTblName())
-				_temptables.push_back(tab);
+			{	
+				_temptables.insert(pair<string,bool>(tab,true));
+			}
 		}
 		tab=onepass_projection(tab,tables[i]->GetProjection(),false);
 		if(tab!="null" && tab!=tables[i]->GetTblName())
-				_temptables.push_back(tab);
+			{	
+				_temptables.insert(pair<string,bool>(tab,true));
+			}
 		if(tables[i]->GetDuplicateElimination())
 		{
 		string tab1;
@@ -882,7 +887,9 @@ string ExecuteQuery(int is_delete = 0)
 		}
 		}
 		if(tab!="null" && tab!=tables[i]->GetTblName())
-				_temptables.push_back(tab);
+			{	
+				_temptables.insert(pair<string,bool>(tab,true));
+			}
 		tblnames.push_back(tab);
 	}
 
@@ -1032,24 +1039,24 @@ string ExecuteQuery(int is_delete = 0)
 					{no_add =1;break;}
 				}
 				if(no_add == 0)
+				{
+					it->setSchema(schemaMgr.getSchema(tables[0]->GetTblName()));
 					temp.push_back(*it);
+					}
 				no_add = 0;
 			}
 
 			int i = 0, count = 0;
 			while (i<temp.size())
 			{
-				for (int j=0; j<NUM_OF_BLOCKS_IN_MEMORY; j++)
-				{
-					mem.getBlock(0)->appendTuple(temp[i]);
-					if(mem.getBlock(0)->isFull())
+				if(mem.getBlock(0)->isFull())
 					{
-						rel->writeBlockFromMemory(0,count++);
+						rel->writeBlockFromMemory(count++,0);
 						mem.getBlock(0)->clear();
 					}
+				mem.getBlock(0)->appendTuple(temp[i]);
 				
-				}
-				i=+ NUM_OF_BLOCKS_IN_MEMORY;
+				i++;
 			}
 			}
 
@@ -1064,18 +1071,22 @@ string ExecuteQuery(int is_delete = 0)
 			if(rel->getNumOfTuples()<=0)
 				printf("\n 0 rows found");
 			else
-			rel->printRelation();
+			{
+				rel->printRelation();
+				cout << endl << rel->getNumOfTuples() << " rows found." << endl;
+			}
 			 
 			;//no join
 		}
 	}
+	if (!is_insert) {
 
-	//delete temporary tables before returning //
-	for(int i=0;i<_temptables.size();i++)
-	{
-		schemaMgr.deleteRelation(_temptables[i]);
+		//delete temporary tables before returning //
+		for(map<string,bool>::iterator it=_temptables.begin();it!=_temptables.end();it++)
+		{
+			schemaMgr.deleteRelation(it->first);
+		}
 	}
-
 	return tblnames[0];
 }
 
