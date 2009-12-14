@@ -1844,7 +1844,7 @@ yyreturn:
 
 void addword(char* s)
 {
-printf("%s",s);
+
 words[totalwords++]=strdup(s);
 return;
 }
