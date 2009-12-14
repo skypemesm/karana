@@ -50,7 +50,6 @@ void ParseTree();
 node* ParseCondition(string expr);
 void returnCondition(node* root);
 vector<string> checksubtree(node* root);
-void CreateDebugData();
 vector<string> split_word(string ,string );
 vector<string> split (string ,string );
 string trim(string&);
@@ -64,7 +63,7 @@ int query2logical(string query)
 {
 	//cout << "In: The memory contains " << mem.getMemorySize() << " blocks" << endl << endl;
 	
-	cout << "The query is: " << query << endl;
+	//cout << "The query is: " << query << endl;
 	string firstword = "", thisquery = "";
 	thisquery = query;
 	size_t indexx = thisquery.find_first_of(' ');
@@ -437,7 +436,6 @@ int query2logical(string query)
 
 int callLex ( string selectquery )
 {
-		CreateDebugData();
 char buf[1000];
 int pos=0;
 FILE *fp;
@@ -465,8 +463,11 @@ regex or_par(" OR " , std::tr1::regex_constants::icase);
 string or_replacement=") OR (";
 str=regex_replace(str,or_par,or_replacement);
 
-if(str.find("WHERE")!=string::npos)
-str.append(")");
+if (str.find ("ORDER BY")!=string::npos && str.find("WHERE")!=string::npos)
+	str = str.substr(0,str.find ("ORDER BY")) + ") " +
+			str.substr(str.find ("ORDER BY"), str.size());
+else if(str.find("WHERE")!=string::npos)
+	str.append(")");
 
 
 cout << str << endl;
@@ -474,16 +475,7 @@ fp=fopen("temp.txt","w");
 fprintf(fp,"%s",str.c_str());
 fclose(fp);
 
-//
-//int firstbr=str.find_first_of("(");
-//str.assign(str.substr(firstbr,str.size()-firstbr));
-//regex condition_par("[a-z.<>=]+",std::tr1::regex_constants::icase);
-//string conditionbr_replacement = "xx";
-//str = regex_replace(str, condition_par, conditionbr_replacement);
-//
-//cout<<"\nnew str is: "<<str;
 
-//getch(); //first getch() to check new string
 	myfile = fopen("temp.txt", "r");
 
 	if (!myfile) {
@@ -506,11 +498,11 @@ ifError=0;	return -1;
 ResetFlags();
 fp=fopen("temp.xml","w");
 fprintf(fp,"<?xml version=\"1.0\"?>\n");
-printf("total:%d",totalwords);
+//printf("total:%d",totalwords);
 //getch();
 for(int i=0;i<totalwords;i++)
 {
-	printf("%s",words[i]);
+	//printf("%s",words[i]);
 fprintf(fp,"%s",words[i]);
 }
 fclose(fp);
@@ -706,7 +698,9 @@ string trim(string& o) {
   return ret;
 }
 
-
+/**
+* This function forms the parse tree, and updates all the required objects correctly.
+*/
  void ParseTree()
 {	
 	string ConditionExpr="";
@@ -730,7 +724,7 @@ string trim(string& o) {
 	{
 		string sorder(order.begin(),order.end());
 		dpos=sorder.find_first_of(L'.')+1;
-		ifOrderBy=new Attribute(sorder.substr(0,dpos-1),sorder.substr(0));
+		ifOrderBy=new Attribute(sorder.substr(0,dpos-1),sorder.substr(dpos,sorder.size()));
 		orderbyAttr = ifOrderBy->GetColName();
 		orderbyTable = ifOrderBy->GetTblName();
 	}
@@ -971,7 +965,7 @@ string trim(string& o) {
 	xml.OutOfElem();
 }
 
-cout<<"\nCondition Expression is:"<<ConditionExpr;
+//cout<<"\nCondition Expression is:"<<ConditionExpr;
 node* logicalroot=ParseCondition(ConditionExpr);
 returnCondition(logicalroot);
 
@@ -1060,11 +1054,7 @@ node* ParseCondition(string expr)
 				  tval=FindClosingIndex(expr.substr(i+1));
 				  if((temp=ParseCondition(expr.substr(i+1,tval)))!=NULL)
 				  { _conditionstk.push_back(temp); i=tval+1+i;}
-				  /*if(expr[i+1]=='('){currentpos=expr.find_last_of(')');
-			 currentpos=expr.rfind(')',currentpos-1);
-			 if((temp=ParseCondition(expr.substr(i+1,currentpos-i)))!=NULL)
-			 _conditionstk.push_back(temp); i=currentpos;}*/
-		 		  if(_conditionstk.size()>=2 && _andorstk.size()>=1){(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-1));(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-2));
+				  if(_conditionstk.size()>=2 && _andorstk.size()>=1){(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-1));(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-2));
 			      _conditionstk.pop_back();_conditionstk.pop_back();_conditionstk.push_back(_andorstk[0]);_andorstk.pop_back();}
 				 
 				  break;
@@ -1132,7 +1122,6 @@ void returnCondition(node* root)
 		conditions.push_back(root);
 	return;
 }
-
 int FindClosingIndex(string val)
 {
 	int cnt=1;

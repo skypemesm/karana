@@ -42,8 +42,8 @@ int main (int argc, char ** argv)
 	//Handle command-line params for usage etc
 	if (argc == 1)
 	{
-			cout << "\nKarana: Lightweight SQL interpreter: " << endl;
-			cout << "---------------------------------------" << endl;
+			cout << "\n    Karana: Lightweight SQL interpreter: " << endl;
+			cout << "------------------------------------------------" << endl;
 			cout << "Usage:\n Login and then enter SQL queries from the prompt $$" << endl;
 			cout << "End every query with a delimiter ;" << endl;
 			cout << "Do not enter two complete queries in one line." << endl;
@@ -55,8 +55,8 @@ int main (int argc, char ** argv)
 	{
 		if (argv[1] == "--h" )
 		{
-			cout << "\nKarana: Lightweight SQL interpreter: " << endl;
-			cout << "---------------------------------------" << endl;
+			cout << "\n    Karana: Lightweight SQL interpreter: " << endl;
+			cout << "------------------------------------------------" << endl;
 			cout << "Usage:\n Login and then enter SQL queries from the prompt $$" << endl;
 			cout << "End every query with a delimiter ;" << endl;
 			cout << "Do not enter two complete queries in one line." << endl;
@@ -180,7 +180,7 @@ string run_query( string query, int printlogicaltree, int printphysicaltree, int
 */
 int initial_setup()
 {
-	cout << endl << "INITIAL SETUP BEGINS........................................" << endl;
+	cout << endl << "INITIAL SETUP BEGINS........................................." << endl;
 	cout << "............................................................." << endl << endl;
 	run_query ("create table course (sid int, homework int, project int, exam int, grade str20)",0,0,0,false);
 	
