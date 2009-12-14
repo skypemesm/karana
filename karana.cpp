@@ -183,6 +183,7 @@ int initial_setup()
 	cout << endl << "INITIAL SETUP BEGINS........................................." << endl;
 	cout << "............................................................." << endl << endl;
 	run_query ("create table course (sid int, homework int, project int, exam int, grade str20)",0,0,0,false);
+	run_query ("create table course2 (sid int, homework int, project int, exam int, grade str20)",0,0,0,false);
 	
 	srand(time(NULL));
 
@@ -201,6 +202,24 @@ int initial_setup()
 	for (int i = 0; i<r; i++)
 	{
 		msg = "insert into course(sid, homework,grade, project, exam) values(";
+		itoa(rand()%200, buffer, 10);
+		msg += buffer;
+		msg+= ",";
+		itoa(rand()%100, buffer, 10);
+		msg += buffer;
+		msg+= ",\"stt";
+		itoa(rand()%10, buffer, 10);
+		msg += buffer;
+		msg+= "\",";
+		itoa(rand()%50, buffer, 10);
+		msg += buffer;
+		msg+= ",";
+		itoa(rand()%5, buffer, 10);
+		msg += buffer;
+		msg+= ")";
+		cout << msg << endl;
+		run_query (msg,0,0,0,false);
+		msg = "insert into course2(sid, homework,grade, project, exam) values(";
 		itoa(rand()%200, buffer, 10);
 		msg += buffer;
 		msg+= ",";
