@@ -259,17 +259,37 @@ public:
 
 		 }
 
+		 int FindClosingIndex(string val)
+		 {
+			 int cnt=1;
+			int i;
+			for(i=0;i<val.size();i++)
+			{
+			switch(val[i])
+			{
+			case '(': cnt++;break;
+			case ')':cnt--;break;
+			default: break;
+			}
+
+	if(cnt==0)
+		break;
+	}
+	return i;
+		 }
+
 		 int GetExpressionVal(string Expression, Tuple& t, SchemaManager sm, string relationName)
 		 {
 			int currentpos=0;
 			deque<int> _val;
 			deque<ArithmeticOP*> _operator;
+			int tval=0;
 			for(int i=0;i<Expression.size();i++)
 			{
 			switch(Expression[i]){
-			case '(':if(Expression[i+1]=='('){currentpos=Expression.find_last_of(')');
-			 currentpos=Expression.rfind(')',currentpos-1);
-			 _val.push_back(GetExpressionVal(Expression.substr(i+1,currentpos-i),t,sm,relationName)); i=currentpos;}
+			case '(':if(Expression[i+1]==')'){break;}
+				  tval=FindClosingIndex(Expression.substr(i+1));
+			 _val.push_back(GetExpressionVal(Expression.substr(i+1,tval),t,sm,relationName)); i=tval+1+i;
 			 break;
 			case ')':
 				break;
@@ -322,14 +342,15 @@ public:
 	int GetJoinExpressionVal(string Expression, Tuple tA, string relA, Tuple tB, string relB, SchemaManager sm)
 	{
 			int currentpos=0;
+			int tval=0;
 			deque<int> _val;
 			deque<ArithmeticOP*> _operator;
 			for(int i=0;i<Expression.size();i++)
 			{
 			switch(Expression[i]){
-			case '(':if(Expression[i+1]=='('){currentpos=Expression.find_last_of(')');
-			 currentpos=Expression.rfind(')',currentpos-1);
-			 _val.push_back(GetJoinExpressionVal(Expression.substr(i+1,currentpos-i),tA,relA,tB,relB,sm)); i=currentpos;}
+			case '(':if(Expression[i+1]==')'){break;}
+				  tval=FindClosingIndex(Expression.substr(i+1));
+			 _val.push_back(GetJoinExpressionVal(Expression.substr(i+1,tval),tA,relA,tB,relB,sm)); i=tval+1+i;
 			 break;
 			case ')':
 				break;

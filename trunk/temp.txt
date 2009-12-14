@@ -1,0 +1,1 @@
+SELECT course.grade , course.sid FROM course , course WHERE ( course.grade = "stt0" AND course.sid > 50)
