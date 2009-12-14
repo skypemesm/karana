@@ -707,6 +707,7 @@ string trim(string& o) {
 	if(!xml.Load(str))
 	{
 	printf("\nIncorrect XML file format!");
+	cout << endl << "Internal Error: Please restart the application and try the query again." << endl;
 	}
 	xml.ResetPos();
 	xml.FindElem(L"Query");
