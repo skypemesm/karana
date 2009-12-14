@@ -38,6 +38,9 @@ extern vector<Table*>T;
 extern Product Pr;
 extern string run_query (string , int , int, int, bool  );
 
+string orderbyAttr;
+string orderbyTable;
+
 //function prototypes
 int callLex (string );
 int create_table(string , map<string,string>);
@@ -121,7 +124,7 @@ int query2logical(string query)
 			{
 				// we need to run the select query first
 				string res_table_name = run_query(res[4],0,0,1,false);
-				if (res_table_name.empty())
+				if (res_table_name == "-1")
 				{
 					cout << "Internal Error: Sorry I cannot get the results from the SELECT statement.";
 					return -1;
@@ -170,10 +173,11 @@ int query2logical(string query)
 									else if (resSchema->getFieldType(attributes[j]) == "INT")
 									{
 									int pos = resSchema->getFieldPos(attributes[j]);
-									string val = "" + tuples[i].getInt(pos);
+									char val[50];
+									itoa (tuples[i].getInt(pos), val, 10);
 									ret = insert_values.insert(pair<string,string>(
 										trim(attributes[j]),
-										"" + tuples[i].getInt(pos)));
+										(string)val));
 									if (ret.second == false)
 									{
 									cout << "Syntax error: You have given the same column name twice." << endl;
@@ -193,12 +197,16 @@ int query2logical(string query)
 									}
 									}
 								}
+								
+							insert_into_table(res[1], insert_values);
+							insert_values.clear();
 							}
 						}
 						
 
-						insert_into_table(res[1], insert_values);
 					}
+
+					schemaMgr.deleteRelation(res_table_name);
 				}
 				else 
 				{
@@ -223,6 +231,7 @@ int query2logical(string query)
 						cout << "Syntax Error: You have given " << attributes.size() << " column names"
 							<< " but " << values.size() << " values. " 
 							<< "Please enter the correct values for the correct columns." << endl;
+						return -1;
 					}
 					else
 					{
@@ -451,7 +460,7 @@ regex where_par("WHERE",std::tr1::regex_constants::icase);
 string where_replacement = "WHERE (";
 str = regex_replace(str, where_par, where_replacement);
 
-regex or_par("OR" , std::tr1::regex_constants::icase);
+regex or_par(" OR " , std::tr1::regex_constants::icase);
 string or_replacement=") OR (";
 str=regex_replace(str,or_par,or_replacement);
 
@@ -489,8 +498,8 @@ fclose(fp);
 fclose(myfile);
 if(ifError)
 {
-printf("\n Incorrect query syntax!!. Please seperate each word with space and use upper case characters for query keywords. You can also check the TinySQL grammer at http://faculty.cs.tamu.edu/chen/"); 
-getch();
+printf("\n Incorrect query syntax!!. \nPlease seperate each word with space and use upper case characters for query keywords.\n You can also check the TinySQL grammer at http://faculty.cs.tamu.edu/chen/"); 
+cout << endl;
 ifError=0;	return -1;
 }
 ResetFlags();
@@ -721,6 +730,8 @@ string trim(string& o) {
 		string sorder(order.begin(),order.end());
 		dpos=sorder.find_first_of(L'.')+1;
 		ifOrderBy=new Attribute(sorder.substr(0,dpos-1),sorder.substr(0));
+		orderbyAttr = ifOrderBy->GetColName();
+		orderbyTable = ifOrderBy->GetTblName();
 	}
 	xml.IntoElem();
 	xml.FindChildElem(L"Attributes");

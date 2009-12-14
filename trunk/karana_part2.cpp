@@ -20,6 +20,8 @@ extern Product Pr;
 extern vector<string> split (string ,string );
 extern string trim(string&);
 extern Attribute* ifOrderBy;
+extern string orderbyAttr;
+extern string orderbyTable;
 
 //Function prototypes
 int logical2physical();
@@ -134,7 +136,7 @@ vector <Tuple> sort_by (string relationname, vector<string> columns)
 	vector<Tuple> results, tuples_in_memory;
 	Relation* thisrelation = schemaMgr.getRelation (relationname);
 	Schema* thisschema = schemaMgr.getSchema (relationname);
-
+	
 	vector<int > columnPositions;
 	vector <string> columnTypes;
 	//find the columnPositions
@@ -226,6 +228,7 @@ vector <Tuple> sort_by (string relationname, vector<string> columns)
 		}			
 
 		ksort (results, columnPositions, columnTypes);
+
 	}
 	else
 	{
@@ -1045,12 +1048,16 @@ string ExecuteQuery(int is_delete = 0, int is_insert = 0)
 					}
 				no_add = 0;
 			}
-
+			mem.getBlock(0)->clear();
 			int i = 0, count = 0;
 			while (i<temp.size())
 			{
 				if(mem.getBlock(0)->isFull())
 					{
+						for(int i=0;i<mem.getBlock(0)->getNumTuples();i++)
+                        {
+                           mem.getBlock(0)->getTuple(i).setSchema(schemaMgr.getSchema(tables[0]->GetTblName()));
+						}
 						rel->writeBlockFromMemory(count++,0);
 						mem.getBlock(0)->clear();
 					}
@@ -1065,9 +1072,38 @@ string ExecuteQuery(int is_delete = 0, int is_insert = 0)
 		}
 		else
 		{
+			string tablename = tblnames[0];
+			// HANDLE ORDER BY
+			if (!orderbyAttr.empty() && orderbyTable == tablename)
+			{
+				vector<string> tempp;
+				vector <Tuple> sorted_results;
+				tempp.push_back(orderbyAttr);
+				sorted_results = sort_by(tablename , tempp);
+
+				string newRel = tablename + "_ordered"; 
+				Relation* newrel=CreateSchema(schemaMgr.getSchema(tablename),newRel);
+				Schema* newschema = schemaMgr.getSchema(newRel);
+
+				
+				int blocks_read = 0;
+				int count = 0;
+				for (vector <Tuple>::iterator it = sorted_results.begin();it !=sorted_results.end(); it++)
+				{
+					if (mem.getBlock(0)->isFull())
+					{
+						newrel->writeBlockFromMemory(count++,0);
+						mem.getBlock(0)->clear();
+					}
+					mem.getBlock(0)->appendTuple(*it);
+
+				}
+			
+				tablename = newRel;
+			}
 
 			printf("\n****************PRINTING RESULT*****************\n");
-			Relation* rel =schemaMgr.getRelation(tblnames[0]);
+			Relation* rel =schemaMgr.getRelation(tablename);
 			if(rel->getNumOfTuples()<=0)
 				printf("\n 0 rows found");
 			else
@@ -1079,14 +1115,14 @@ string ExecuteQuery(int is_delete = 0, int is_insert = 0)
 			;//no join
 		}
 	}
-	if (!is_insert) {
-
-		//delete temporary tables before returning //
+	
+	//delete temporary tables before returning //
 		for(map<string,bool>::iterator it=_temptables.begin();it!=_temptables.end();it++)
 		{
+			if (! (is_insert && it->first == tblnames[0]))
 			schemaMgr.deleteRelation(it->first);
 		}
-	}
+
 	return tblnames[0];
 }
 
