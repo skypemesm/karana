@@ -137,6 +137,7 @@ int main (int argc, char ** argv)
 string run_query( string query, int printlogicaltree, int printphysicaltree, int fromInsert, bool is_delete)
 {
 	int status;
+	time_t start = time (NULL);
 	resetDIOs();
 	status = query2logical(query);
 	if ( status == -1) return "-1";
@@ -161,7 +162,9 @@ string run_query( string query, int printlogicaltree, int printphysicaltree, int
 	}
 
 	cout << endl << "Total number of disk I/Os: " << getDIOs() << endl << endl;
-
+	
+	time_t end = time (NULL);
+	printf("%4.4f seconds taken to execute the query\n\n",(float)(end-start)/1000.0);
 	//Resetting global variables for next query
 	ConditionMap.clear();
 	conditions.clear();
