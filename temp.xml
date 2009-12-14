@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<Query>
+<SFW ORDERBY=NULL DISTINCT=FALSE>
+<Attributes>
+<COLUMN_NAME>course.grade</COLUMN_NAME>
+<COLUMN_NAME>course.sid</COLUMN_NAME>
+</Attributes>
+<Relations>
+<TABLE_NAME>course</TABLE_NAME>
+<TABLE_NAME>course</TABLE_NAME>
+</Relations>
+<Search_Condition>
+<OPENBR></OPENBR>
+<ComparisonPredicate>
+<Expression><COLUMN_NAME>course.grade</COLUMN_NAME>
+</Expression>
+<COMPOP>=</COMPOP>
+<Expression>
+<LITERAL>"stt0"</LITERAL>
+</Expression>
+</ComparisonPredicate>
+<Logical>AND</Logical>
+<ComparisonPredicate>
+<Expression><COLUMN_NAME>course.sid</COLUMN_NAME>
+</Expression>
+<COMPOP>></COMPOP>
+<Expression>
+<INTEGER>50</INTEGER>
+</Expression>
+</ComparisonPredicate>
+<CLOSEBR></CLOSEBR>
+</Search_Condition>
+</SFW>
+</Query>

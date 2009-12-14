@@ -54,6 +54,7 @@ void CreateDebugData();
 vector<string> split_word(string ,string );
 vector<string> split (string ,string );
 string trim(string&);
+int FindClosingIndex(string val);
 
 /**
 * This method converts the query to its logical plan
@@ -1050,14 +1051,19 @@ node* ParseCondition(string expr)
 	node* I;
 	node* temp;
 	int currentpos=0;
-	for(int i=0; i<expr.size()-1; i++)
+	int tval=0;
+	for(int i=0; i<expr.size(); i++)
 	{
 		 switch(expr[i])
 		 {
-		 case '(':if(expr[i+1]==')'){break;}if(expr[i+1]=='('){currentpos=expr.find_last_of(')');
+		 case '(':if(expr[i+1]==')'){break;}
+				  tval=FindClosingIndex(expr.substr(i+1));
+				  if((temp=ParseCondition(expr.substr(i+1,tval)))!=NULL)
+				  { _conditionstk.push_back(temp); i=tval+1+i;}
+				  /*if(expr[i+1]=='('){currentpos=expr.find_last_of(')');
 			 currentpos=expr.rfind(')',currentpos-1);
 			 if((temp=ParseCondition(expr.substr(i+1,currentpos-i)))!=NULL)
-			 _conditionstk.push_back(temp); i=currentpos;}
+			 _conditionstk.push_back(temp); i=currentpos;}*/
 		 		  if(_conditionstk.size()>=2 && _andorstk.size()>=1){(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-1));(*(_andorstk.end()-1))->AddChildren(*(_conditionstk.end()-2));
 			      _conditionstk.pop_back();_conditionstk.pop_back();_conditionstk.push_back(_andorstk[0]);_andorstk.pop_back();}
 				 
@@ -1125,4 +1131,23 @@ void returnCondition(node* root)
 	if(root->GetType()==node::SEARCH_CONDITION)
 		conditions.push_back(root);
 	return;
+}
+
+int FindClosingIndex(string val)
+{
+	int cnt=1;
+	int i;
+	for(i=0;i<val.size();i++)
+	{
+	switch(val[i])
+	{
+	case '(': cnt++;break;
+	case ')':cnt--;break;
+	default: break;
+	}
+
+	if(cnt==0)
+		break;
+	}
+	return i;
 }
