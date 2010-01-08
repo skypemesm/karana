@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<Query>
+<SFW ORDERBY=NULL DISTINCT=FALSE>
+<Attributes>
+<Operator>*</Operator>
+<COLUMN_NAME>*</COLUMN_NAME>
+</Attributes>
+<Relations>
+<TABLE_NAME>course2</TABLE_NAME>
+</Relations>
+</SFW>
+</Query>
